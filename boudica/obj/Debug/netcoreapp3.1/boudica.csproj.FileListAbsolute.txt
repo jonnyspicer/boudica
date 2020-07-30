@@ -1,0 +1,13 @@
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.exe
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.deps.json
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.runtimeconfig.json
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.runtimeconfig.dev.json
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.dll
+C:\Users\Jonny\repos\boudica\boudica\bin\Debug\netcoreapp3.1\boudica.pdb
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.csprojAssemblyReference.cache
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.csproj.CoreCompileInputs.cache
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.AssemblyInfoInputs.cache
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.AssemblyInfo.cs
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.dll
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.pdb
+C:\Users\Jonny\repos\boudica\boudica\obj\Debug\netcoreapp3.1\boudica.genruntimeconfig.cache

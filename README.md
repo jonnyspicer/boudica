@@ -1,14 +1,13 @@
 # Boudica
 
-This is the beginnings of a chess engine implemented in C# - it is very, very much a work in progress.
-C# is not the best choice for a chess engine, but fortunately this is a hobby project for my own personal enjoyment
-and not an attempt at creating a particularly competitive engine.
+This is the beginnings of a chess engine implemented in Go. I am a mediocre chess player and a mediocre programmer, so I have very low expectations for it. My main motivation behind
+the project is to improve my knowledge of Golang and try to learn how to write high-quality, performant, idiomatic code. If I make something cool in the process, that's a huge bonus.
 
 ## Todo
 
-- ~~Initialise standard starting position~~
-- ~~standard pawn move generation~~
-- en passant move generation (in progress, currently bugged)
+- Initialise standard starting position
+- standard pawn move generation
+- en passant move generation
 - sliding piece move generation
 - knight move generation
 - castling move generation

@@ -15,7 +15,6 @@ the project is to improve my knowledge of Golang and try to learn how to write h
 - output UCI
 - search
 - eval
-- frontend
 
 If you're interested in chess programming, the [chess programming wiki](https://www.chessprogramming.org/Main_Page)
 is invaluable. It is my primary source of information for writing this engine, and all the techniques I've implemented

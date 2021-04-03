@@ -2,8 +2,10 @@
 // searching & evaluating legal chess moves
 package boudica
 
-import "github.com/jonnyspicer/boudica/internal/bitboard"
+import (
+	"fmt"
+)
 
 func Run() {
-	bitboard.Bitboard()
+	fmt.Println("hello world")
 }

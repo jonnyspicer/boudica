@@ -1,10 +1,10 @@
-package bitboard_test
+package state_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/jonnyspicer/boudica/internal/bitboard"
+	. "github.com/jonnyspicer/boudica/internal/state"
 
 	"github.com/stretchr/testify/assert"
 )

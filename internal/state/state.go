@@ -1,6 +1,6 @@
-// Package bitboard provides a way to visualise an 8x8 board as a 64 bit integer
+// Package state provides a way to visualise an 8x8 board as a 64 bit integer
 // See https://www.chessprogramming.org/8x8_Board for an explanation
-package bitboard
+package state
 
 // TODO: maybe change this to xfen for 960? see https://en.wikipedia.org/wiki/X-FEN
 type Fen string
@@ -62,7 +62,7 @@ func NewCustomPosition(f Fen) (State, error) {
 }
 
 // Func fenToBoard will create a Board struct, consisting of the
-// 12 bitboard necessary to represent a chessboard, from a given
+// 12 state necessary to represent a chessboard, from a given
 // fen string
 // TODO: refactor this to be part of a complete fenToState function
 func FenToBoard(f Fen) (Board, error) {

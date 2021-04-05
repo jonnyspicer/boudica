@@ -39,3 +39,9 @@ func TestToBoard_Error(t *testing.T) {
 
 	assert.NotNil(t, err)
 }
+
+func TestGenerateCMLXFen(t *testing.T) {
+	_, err := GenerateCMLXFen()
+
+	assert.Nil(t, err)
+}

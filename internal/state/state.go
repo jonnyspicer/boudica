@@ -46,7 +46,23 @@ func NewStandardGame() (State, error) {
 // Func NewCMLXGame will create a new State struct with the initial
 // starting parameters of a chess 960 game
 func NewCMLXGame() (State, error) {
-	return State{}, nil
+	s := State{}
+
+	f, err := GenerateCMLXFen()
+
+	if err != nil {
+		return s, errors.New("error generating CMLX fen")
+	}
+
+	b, err := f.ToBoard()
+
+	if err != nil {
+		return s, errors.New("error generating board from fen")
+	}
+
+	s.Board = b
+
+	return s, nil
 }
 
 // Func NewCustomPosition will create a new State struct with the

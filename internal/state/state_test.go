@@ -94,7 +94,9 @@ func TestNewStandardGame(t *testing.T) {
 }
 
 func TestNewCMLXGame(t *testing.T) {
-	// TODO: work out how generating a 960 game actually works, then write this test
+	// TODO: test that black and white pieces are in the same arrangement, should be doable with exponents
+	// TODO: test that bishops are on opposite colour squares (should be possible using logs, find position of each bishop and then check one is odd one is even)
+	// TODO: test king is between rooks (again use logs, find position of all three pieces and check king is in the middle)
 	_, err := NewCMLXGame()
 
 	assert.Nil(t, err)

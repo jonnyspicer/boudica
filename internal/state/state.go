@@ -2,23 +2,7 @@
 // See https://www.chessprogramming.org/8x8_Board for an explanation
 package state
 
-// TODO: maybe change this to xfen for 960? see https://en.wikipedia.org/wiki/X-FEN
-type Fen string
-type BitBoard uint64
-type Board struct {
-	WhiteRooks   BitBoard
-	WhiteKnights BitBoard
-	WhiteBishops BitBoard
-	WhiteQueens  BitBoard
-	WhiteKing    BitBoard
-	WhitePawns   BitBoard
-	BlackRooks   BitBoard
-	BlackKnights BitBoard
-	BlackBishops BitBoard
-	BlackQueens  BitBoard
-	BlackKing    BitBoard
-	BlackPawns   BitBoard
-}
+import "errors"
 
 // The starting position for a standard game of chess
 // Splitting on spaces;
@@ -46,7 +30,17 @@ type State struct {
 // Func NewStandardGame will create a new State struct with the initial
 // starting parameters of a standard chess game
 func NewStandardGame() (State, error) {
-	return State{}, nil
+	s := State{}
+
+	b, err := standardStart.ToBoard()
+
+	if err != nil {
+		return s, errors.New("error generating board from fen")
+	}
+
+	s.Board = b
+
+	return s, nil
 }
 
 // Func NewCMLXGame will create a new State struct with the initial
@@ -58,13 +52,15 @@ func NewCMLXGame() (State, error) {
 // Func NewCustomPosition will create a new State struct with the
 // parameters from a specified FEN string
 func NewCustomPosition(f Fen) (State, error) {
-	return State{}, nil
-}
+	s := State{}
 
-// Func fenToBoard will create a Board struct, consisting of the
-// 12 state necessary to represent a chessboard, from a given
-// fen string
-// TODO: refactor this to be part of a complete fenToState function
-func FenToBoard(f Fen) (Board, error) {
-	return Board{}, nil
+	b, err := f.ToBoard()
+
+	if err != nil {
+		return s, errors.New("error generating board from fen")
+	}
+
+	s.Board = b
+
+	return s, nil
 }

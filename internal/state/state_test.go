@@ -12,20 +12,20 @@ import (
 const standardStartWhiteRooks BitBoard = 9295429630892703744
 const standardStartWhiteKnights BitBoard = 4755801206503243776
 const standardStartWhiteBishops BitBoard = 2594073385365405696
-const standardStartWhiteQueens BitBoard = 1152921504606846976
-const standardStartWhiteKing BitBoard = 576460752303423488
+const standardStartWhiteKing BitBoard = 1152921504606846976
+const standardStartWhiteQueens BitBoard = 576460752303423488
 const standardStartWhitePawns BitBoard = 71776119061217280
 const standardStartBlackRooks BitBoard = 129
 const standardStartBlackKnights BitBoard = 66
 const standardStartBlackBishops BitBoard = 36
-const standardStartBlackQueens BitBoard = 16
-const standardStartBlackKing BitBoard = 8
+const standardStartBlackKing BitBoard = 16
+const standardStartBlackQueens BitBoard = 8
 const standardStartBlackPawns BitBoard = 65280
 
 const standardStart Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-// draw array helper method (converts bitboards back into a printable string)
-
+// Func bitboardsToRunes is a testing/debugging method to
+// allow for human readable output from bitboards
 func bitboardsToRunes(board Board) ([8][8]rune, error) {
 	b := [8][8]rune{}
 
@@ -45,7 +45,7 @@ func bitboardsToRunes(board Board) ([8][8]rune, error) {
 		} else if ((board.BlackRooks >> i) & 1) == 1 {
 			b[i/8][i%8] = 'r'
 		} else if ((board.BlackKnights >> i) & 1) == 1 {
-			b[i/8][i%8] = 'k'
+			b[i/8][i%8] = 'n'
 		} else if ((board.BlackBishops >> i) & 1) == 1 {
 			b[i/8][i%8] = 'b'
 		} else if ((board.BlackQueens >> i) & 1) == 1 {
@@ -94,6 +94,7 @@ func TestNewStandardGame(t *testing.T) {
 }
 
 func TestNewCMLXGame(t *testing.T) {
+	// TODO: work out how generating a 960 game actually works, then write this test
 	_, err := NewCMLXGame()
 
 	assert.Nil(t, err)
@@ -124,24 +125,3 @@ func TestNewCustomPosition(t *testing.T) {
 }
 
 // TODO: make this function private, then mock it
-func TestFenToBoard(t *testing.T) {
-	actBoard, err := FenToBoard(standardStart)
-
-	expBoard := Board{
-		WhiteRooks:   standardStartWhiteRooks,
-		WhiteKnights: standardStartWhiteKnights,
-		WhiteBishops: standardStartWhiteBishops,
-		WhiteQueens:  standardStartWhiteQueens,
-		WhiteKing:    standardStartWhiteKing,
-		WhitePawns:   standardStartWhitePawns,
-		BlackRooks:   standardStartBlackRooks,
-		BlackKnights: standardStartBlackKnights,
-		BlackBishops: standardStartBlackBishops,
-		BlackQueens:  standardStartBlackQueens,
-		BlackKing:    standardStartBlackKing,
-		BlackPawns:   standardStartBlackPawns,
-	}
-
-	assert.Nil(t, err)
-	assert.Equal(t, expBoard, actBoard)
-}

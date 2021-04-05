@@ -123,5 +123,3 @@ func TestNewCustomPosition(t *testing.T) {
 	assert.Equal(t, expRunes, actRunes)
 	assert.Nil(t, err)
 }
-
-// TODO: make this function private, then mock it

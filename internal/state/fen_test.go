@@ -1,7 +1,6 @@
 package state_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/jonnyspicer/boudica/internal/state"
@@ -10,7 +9,9 @@ import (
 )
 
 func TestToBoard(t *testing.T) {
-	actBoard, err := standardStart.ToBoard()
+	var f Fen = "rnbqkb1r/pppppppp/5n2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+	actBoard, err := f.ToBoard()
 
 	expBoard := Board{
 		WhiteRooks:   standardStartWhiteRooks,
@@ -20,18 +21,21 @@ func TestToBoard(t *testing.T) {
 		WhiteKing:    standardStartWhiteKing,
 		WhitePawns:   standardStartWhitePawns,
 		BlackRooks:   standardStartBlackRooks,
-		BlackKnights: standardStartBlackKnights,
+		BlackKnights: BitBoard(2097154),
 		BlackBishops: standardStartBlackBishops,
 		BlackQueens:  standardStartBlackQueens,
 		BlackKing:    standardStartBlackKing,
 		BlackPawns:   standardStartBlackPawns,
 	}
 
-	fmt.Println("Actual bitboard:")
-	bitboardsToRunes(actBoard)
-	fmt.Println("Expected bitboard:")
-	bitboardsToRunes(expBoard)
-
 	assert.Nil(t, err)
 	assert.Equal(t, expBoard, actBoard)
+}
+
+func TestToBoard_Error(t *testing.T) {
+	var f Fen = "rnzqkb1r/pppppppp/5n2/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+	_, err := f.ToBoard()
+
+	assert.NotNil(t, err)
 }

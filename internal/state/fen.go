@@ -11,8 +11,8 @@ import (
 // TODO: maybe change this to xfen for 960? see https://en.wikipedia.org/wiki/X-FEN
 type Fen string
 
-// Func fenToBoard will create a Board struct, consisting of the
-// 12 state necessary to represent a chessboard, from a given fen string
+// Func ToBoard will create a Board struct, consisting of the
+// 12 bitboards necessary to represent a chessboard, from a given fen string
 // TODO: refactor this to be part of a complete ToState function
 func (f Fen) ToBoard() (Board, error) {
 	b := Board{}
@@ -92,8 +92,8 @@ func GenerateCMLXFen() (Fen, error) {
 	// lookup the bishops
 	bishops := bt[n%16]
 
-	row[bishops[0]-1] = 'b'
-	row[bishops[1]-1] = 'b'
+	row[bishops[0]] = 'b'
+	row[bishops[1]] = 'b'
 
 	// lookup everything else
 	pieces := kt[n-(n%16)]

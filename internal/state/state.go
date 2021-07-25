@@ -10,7 +10,7 @@ import "errors"
 // the second substring is the side to move
 // the third substring is the castling ability
 // the fourth substring is the en passant target square
-// the fifth substring is the halfmove clock (ie how many half moves have been made that contribute to the 50 move draw rule)
+// the fifth substring is the halfmove clock (ie how many half expectedMoves have been made that contribute to the 50 move draw rule)
 // the sixth substring is the fullmove counter
 const standardStart Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 

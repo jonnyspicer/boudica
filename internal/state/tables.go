@@ -1,7 +1,6 @@
 package state
 
 // Scharnagl tables for chess 960 starting position lookups
-// see https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme
 
 // King's table
 var kt = map[int][]rune{

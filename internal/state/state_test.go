@@ -10,18 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const standardStartWhiteRooks BitBoard = 0b_1000000100000000000000000000000000000000000000000000000000000000
-const standardStartWhiteKnights BitBoard = 0b_0100001000000000000000000000000000000000000000000000000000000000
-const standardStartWhiteBishops BitBoard = 0b_0010010000000000000000000000000000000000000000000000000000000000
-const standardStartWhiteKing BitBoard = 0b_0001000000000000000000000000000000000000000000000000000000000000
-const standardStartWhiteQueens BitBoard = 0b_0000100000000000000000000000000000000000000000000000000000000000
-const standardStartWhitePawns BitBoard = 0b_0000000011111111000000000000000000000000000000000000000000000000
-const standardStartBlackRooks BitBoard = 0b_0000000000000000000000000000000000000000000000000000000010000001
-const standardStartBlackKnights BitBoard = 0b_0000000000000000000000000000000000000000000000000000000001000010
-const standardStartBlackBishops BitBoard = 0b_0000000000000000000000000000000000000000000000000000000000100100
-const standardStartBlackKing BitBoard = 0b_00000000000000000000000000000000000000000000000000000000000010000
-const standardStartBlackQueens BitBoard = 0b_000000000000000000000000000000000000000000000000000000000001000
-const standardStartBlackPawns BitBoard = 0b_0000000000000000000000000000000000000000000000001111111100000000
+const (
+	standardStartWhiteRooks   BitBoard = 0b_1000000100000000000000000000000000000000000000000000000000000000
+	standardStartWhiteKnights BitBoard = 0b_0100001000000000000000000000000000000000000000000000000000000000
+	standardStartWhiteBishops BitBoard = 0b_0010010000000000000000000000000000000000000000000000000000000000
+	standardStartWhiteKing    BitBoard = 0b_0001000000000000000000000000000000000000000000000000000000000000
+	standardStartWhiteQueens  BitBoard = 0b_0000100000000000000000000000000000000000000000000000000000000000
+	standardStartWhitePawns   BitBoard = 0b_0000000011111111000000000000000000000000000000000000000000000000
+	standardStartBlackRooks   BitBoard = 0b_0000000000000000000000000000000000000000000000000000000010000001
+	standardStartBlackKnights BitBoard = 0b_0000000000000000000000000000000000000000000000000000000001000010
+	standardStartBlackBishops BitBoard = 0b_0000000000000000000000000000000000000000000000000000000000100100
+	standardStartBlackKing    BitBoard = 0b_00000000000000000000000000000000000000000000000000000000000010000
+	standardStartBlackQueens  BitBoard = 0b_000000000000000000000000000000000000000000000000000000000001000
+	standardStartBlackPawns   BitBoard = 0b_0000000000000000000000000000000000000000000000001111111100000000
+)
 
 const standardStart Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -98,12 +100,12 @@ func TestNewCMLXGame(t *testing.T) {
 	CMLX, err := NewCMLXGame()
 
 	t.Run("mirrored-pieces", func(t *testing.T) {
+		// each side's pieces should be in the same positions, 56 squares apart
 		assert.Equal(t, CMLX.Board.WhiteRooks>>56, CMLX.Board.BlackRooks)
 		assert.Equal(t, CMLX.Board.WhiteKnights>>56, CMLX.Board.BlackKnights)
 		assert.Equal(t, CMLX.Board.WhiteBishops>>56, CMLX.Board.BlackBishops)
 		assert.Equal(t, CMLX.Board.WhiteQueens>>56, CMLX.Board.BlackQueens)
 		assert.Equal(t, CMLX.Board.WhiteKing>>56, CMLX.Board.BlackKing)
-		assert.Equal(t, CMLX.Board.WhitePawns>>40, CMLX.Board.BlackPawns)
 	})
 
 	t.Run("opposite-colour-bishops", func(t *testing.T) {
@@ -114,8 +116,8 @@ func TestNewCMLXGame(t *testing.T) {
 		// Find the value when the least significant 1 is eliminated, ie the left-most bishop
 		b2 := bb - b1
 
-		// Take the binary logarithm of each value to get the square number of each bishop
-		// One should be on b1 light square and one on b1 dark, hence one value should odd
+		// Take the binary logarithm of each value to get the square number of each bishop;
+		// one should be on a light square and one on a dark, hence one value should be odd
 		// and the other even
 		assert.True(t, int(math.Log2(float64(b1)))%2+int(math.Log2(float64(b2)))%2 == 1)
 	})

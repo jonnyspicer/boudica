@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	. "github.com/jonnyspicer/boudica/internal/state"
@@ -94,10 +95,42 @@ func TestNewStandardGame(t *testing.T) {
 }
 
 func TestNewCMLXGame(t *testing.T) {
-	// TODO: test that black and white pieces are in the same arrangement, should be doable with exponents
-	// TODO: test that bishops are on opposite colour squares (should be possible using logs, find position of each bishop and then check one is odd one is even)
-	// TODO: test king is between rooks (again use logs, find position of all three pieces and check king is in the middle)
-	_, err := NewCMLXGame()
+	CMLX, err := NewCMLXGame()
+
+	t.Run("mirrored-pieces", func(t *testing.T) {
+		assert.Equal(t, CMLX.Board.WhiteRooks>>56, CMLX.Board.BlackRooks)
+		assert.Equal(t, CMLX.Board.WhiteKnights>>56, CMLX.Board.BlackKnights)
+		assert.Equal(t, CMLX.Board.WhiteBishops>>56, CMLX.Board.BlackBishops)
+		assert.Equal(t, CMLX.Board.WhiteQueens>>56, CMLX.Board.BlackQueens)
+		assert.Equal(t, CMLX.Board.WhiteKing>>56, CMLX.Board.BlackKing)
+		assert.Equal(t, CMLX.Board.WhitePawns>>40, CMLX.Board.BlackPawns)
+	})
+
+	t.Run("opposite-colour-bishops", func(t *testing.T) {
+		bb := int(CMLX.Board.BlackBishops)
+
+		// Find the value of the least significant 1, ie the right-most bishop
+		b1 := bb - bb&(bb-1)
+		// Find the value when the least significant 1 is eliminated, ie the left-most bishop
+		b2 := bb - b1
+
+		// Take the binary logarithm of each value to get the square number of each bishop
+		// One should be on b1 light square and one on b1 dark, hence one value should odd
+		// and the other even
+		assert.True(t, int(math.Log2(float64(b1)))%2+int(math.Log2(float64(b2)))%2 == 1)
+	})
+
+	t.Run("king-between-rooks", func(t *testing.T) {
+		br := int(CMLX.Board.BlackRooks)
+		bk := int(CMLX.Board.BlackKing)
+
+		// as above, find the positions of each rook
+		r1 := br - br&(br-1)
+		r2 := br - r1
+
+		// and assert that the king is in between the two
+		assert.True(t, r1 < bk && bk < r2)
+	})
 
 	assert.Nil(t, err)
 }

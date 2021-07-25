@@ -9,18 +9,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const standardStartWhiteRooks BitBoard = 9295429630892703744
-const standardStartWhiteKnights BitBoard = 4755801206503243776
-const standardStartWhiteBishops BitBoard = 2594073385365405696
-const standardStartWhiteKing BitBoard = 1152921504606846976
-const standardStartWhiteQueens BitBoard = 576460752303423488
-const standardStartWhitePawns BitBoard = 71776119061217280
-const standardStartBlackRooks BitBoard = 129
-const standardStartBlackKnights BitBoard = 66
-const standardStartBlackBishops BitBoard = 36
-const standardStartBlackKing BitBoard = 16
-const standardStartBlackQueens BitBoard = 8
-const standardStartBlackPawns BitBoard = 65280
+const standardStartWhiteRooks BitBoard = 0b_1000000100000000000000000000000000000000000000000000000000000000
+const standardStartWhiteKnights BitBoard = 0b_0100001000000000000000000000000000000000000000000000000000000000
+const standardStartWhiteBishops BitBoard = 0b_0010010000000000000000000000000000000000000000000000000000000000
+const standardStartWhiteKing BitBoard = 0b_0001000000000000000000000000000000000000000000000000000000000000
+const standardStartWhiteQueens BitBoard = 0b_0000100000000000000000000000000000000000000000000000000000000000
+const standardStartWhitePawns BitBoard = 0b_0000000011111111000000000000000000000000000000000000000000000000
+const standardStartBlackRooks BitBoard = 0b_0000000000000000000000000000000000000000000000000000000010000001
+const standardStartBlackKnights BitBoard = 0b_0000000000000000000000000000000000000000000000000000000001000010
+const standardStartBlackBishops BitBoard = 0b_0000000000000000000000000000000000000000000000000000000000100100
+const standardStartBlackKing BitBoard = 0b_00000000000000000000000000000000000000000000000000000000000010000
+const standardStartBlackQueens BitBoard = 0b_000000000000000000000000000000000000000000000000000000000001000
+const standardStartBlackPawns BitBoard = 0b_0000000000000000000000000000000000000000000000001111111100000000
 
 const standardStart Fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 

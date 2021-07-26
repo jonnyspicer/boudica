@@ -29,20 +29,20 @@ type Generator struct {
 	emptySquares          state.BitBoard
 	history               string
 	// TODO: there has to be a better way to do this... a move struct? [][x1, y1, x2, y2]? is it worth benchmarking this?
-	possibleMoves string
+	possibilities string
 }
 
 func NewGenerator(b state.Board, history string) Generator {
-	mg := Generator{Board: b, history: history}
+	g := Generator{Board: b, history: history}
 	// All squares that white pieces could conceivably move to, ie ones that aren't occupied by white pieces or the black king
-	mg.whiteAvailableSquares = ^(b.WhitePawns | b.WhiteKnights | b.WhiteBishops | b.WhiteRooks | b.WhiteQueens | b.WhiteKing | b.BlackKing)
+	g.whiteAvailableSquares = ^(b.WhitePawns | b.WhiteKnights | b.WhiteBishops | b.WhiteRooks | b.WhiteQueens | b.WhiteKing | b.BlackKing)
 	// All squares occupied by black pieces, bar the black king
-	mg.blackPieces = b.BlackPawns | b.BlackKnights | b.BlackBishops | b.BlackRooks | b.BlackQueens
-	mg.emptySquares = ^(b.WhitePawns | b.WhiteKnights | b.WhiteBishops | b.WhiteRooks | b.WhiteQueens | b.WhiteKing | b.BlackPawns | b.BlackKnights | b.BlackBishops | b.BlackRooks | b.BlackQueens | b.BlackKing)
+	g.blackPieces = b.BlackPawns | b.BlackKnights | b.BlackBishops | b.BlackRooks | b.BlackQueens
+	g.emptySquares = ^(b.WhitePawns | b.WhiteKnights | b.WhiteBishops | b.WhiteRooks | b.WhiteQueens | b.WhiteKing | b.BlackPawns | b.BlackKnights | b.BlackBishops | b.BlackRooks | b.BlackQueens | b.BlackKing)
 
-	return mg
+	return g
 }
 
-func (g *Generator) PossibleMoves() {
-	g.WhitePawnMoves()
+func (g *Generator) Possible() {
+	g.WhitePawns()
 }

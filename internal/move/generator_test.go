@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerator_GeneratePossibleMoves(t *testing.T) {
+func TestGenerator_Possible(t *testing.T) {
 	cases := []struct {
 		name     string
 		position string
@@ -26,10 +26,12 @@ func TestGenerator_GeneratePossibleMoves(t *testing.T) {
 			// TODO: refactor this so only testing the functionality in generator.go
 			s, _ := state.NewCustomPosition(state.Fen(c.position))
 
-			mg := NewGenerator(s.Board, "")
-			mg.PossibleMoves()
+			g := NewGenerator(s.Board, "")
+			g.Possible()
 
-			assert.Equal(t, c.expectedMoves, mg.possibleMoves)
+			g.Board.ToRunes()
+
+			assert.Equal(t, c.expectedMoves, g.possibilities)
 		})
 	}
 }

@@ -5,8 +5,8 @@ the project is to improve my knowledge of Golang and try to learn how to write h
 
 ## Todo
 
-- Initialise standard starting position
-- standard pawn move generation
+- ~Initialise standard starting position~
+- ~standard pawn move generation~
 - en passant move generation
 - sliding piece move generation
 - knight move generation

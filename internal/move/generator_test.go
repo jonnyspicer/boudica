@@ -1,12 +1,14 @@
-package state
+package move
 
 import (
 	"testing"
 
+	"github.com/jonnyspicer/boudica/internal/state"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMoveGenerator_GeneratePossibleMoves(t *testing.T) {
+func TestGenerator_GeneratePossibleMoves(t *testing.T) {
 	cases := []struct {
 		name     string
 		position string
@@ -21,10 +23,11 @@ func TestMoveGenerator_GeneratePossibleMoves(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			s, _ := NewCustomPosition(Fen(c.position))
+			// TODO: refactor this so only testing the functionality in generator.go
+			s, _ := state.NewCustomPosition(state.Fen(c.position))
 
-			mg := NewMoveGenerator(s, "")
-			mg.GeneratePossibleMoves()
+			mg := NewGenerator(s.Board, "")
+			mg.PossibleMoves()
 
 			assert.Equal(t, c.expectedMoves, mg.possibleMoves)
 		})

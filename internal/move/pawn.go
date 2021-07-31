@@ -1,12 +1,13 @@
 package move
 
 import (
+	"math"
 	"math/bits"
 	"strconv"
 )
 
 func (g *Generator) WhitePawns() {
-	// TODO: unflip these boards, use bitboardstorunes() to figure out what's going on
+	// TODO: are these flipped?
 	g.pawnCaptureRight()
 	g.pawnCaptureLeft()
 	g.pawnForwardOne()
@@ -81,6 +82,17 @@ func (g *Generator) pawnPromoteForward() {
 	}
 }
 
-//func enPassant(wp state.BitBoard) string {
-//	return ""
-//}
+func (g *Generator) enPassant() {
+	// TODO: are there any gotchas to using len() here?
+	// check if there is at least one move in the history
+	if len(g.history) >= 4 {
+		// worth noting that accessing an element of the string g.history will return a rune value (ie uint8), not a substring
+		// eg returns 18 instead of "2"
+		// check if the last move was a pawn moving forward two squares
+		if g.history[len(g.history)-1] == g.history[len(g.history)-3] && math.Abs(float64(g.history[len(g.history)-2]-g.history[len(g.history)-4])) == 2.0 {
+			eFile := g.history[len(g.history)-1] - '0'
+			// TODO: get this compiling, obviously
+			// do the other pawn move types need refactoring?
+		}
+	}
+}

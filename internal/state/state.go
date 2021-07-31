@@ -68,6 +68,7 @@ func NewCMLXGame() (State, error) {
 // Func NewCustomPosition will create a new State struct with the
 // parameters from a specified FEN string
 func NewCustomPosition(f Fen) (State, error) {
+	// TODO: add logic to check the start position is legal, eg no pawns on back rank, both sides have a king
 	s := State{}
 
 	b, err := f.ToBoard()

@@ -47,6 +47,9 @@ void Handler::initOptions() {
     // Hash table size in MB (default 64, range 1-1024)
     options.emplace_back("Hash", 64, 1, 1024);
 
+    // Skill Level: 0=depth 1, 20=no cap (default full strength)
+    options.emplace_back("Skill Level", 20, 0, 20);
+
     // Clear Hash button
     options.emplace_back("Clear Hash", OPT_BUTTON);
 }
@@ -403,6 +406,9 @@ void Handler::cmdSetOption(std::istringstream& is) {
         // Apply hash size change
         if (name == "Hash") {
             transpositionTable.resize(static_cast<size_t>(val));
+        }
+        else if (name == "Skill Level") {
+            Boudica::skill_level = val;
         }
     }
     else if (opt->type == OPT_CHECK) {

@@ -233,6 +233,7 @@ private:
 extern std::atomic<bool> stop_search;  // Set by UCI "stop" command
 extern MoveOrderingTables move_ordering;
 extern SearchInfo search_info;
+extern int skill_level;  // 0-20, limits search depth (20 = no limit)
 
 // ============================================================================
 // Main Search Functions

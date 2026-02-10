@@ -1,0 +1,382 @@
+/* Chess-specific styles using design system CSS custom properties */
+
+/* Override design system label hide for game controls */
+.game-controls label {
+    display: inline-block;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-small);
+    color: var(--color-text);
+    margin-bottom: 4px;
+}
+
+/* Override design system max-width for board + panel layout */
+main.chess-main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--padding-sm);
+    flex: 1;
+}
+
+/* Game controls bar */
+.game-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: var(--margin-sm);
+    padding: var(--padding-xs);
+    border: 1px solid var(--color-grey-very-light);
+    border-radius: var(--border-radius-base);
+}
+
+.game-controls .control-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.game-controls select,
+.game-controls button {
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-base);
+    padding: 6px 12px;
+    border: 1px solid var(--color-grey-light);
+    border-radius: var(--border-radius-base);
+    background: var(--color-white);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.game-controls select:focus,
+.game-controls button:focus {
+    outline: 2px solid var(--color-pink);
+    outline-offset: 1px;
+}
+
+.game-controls button {
+    background: var(--color-text);
+    color: var(--color-white);
+    border: none;
+    font-weight: var(--font-weight-bold);
+}
+
+.game-controls button:hover {
+    opacity: 0.85;
+}
+
+.game-controls button.btn-danger {
+    background: var(--color-pink);
+}
+
+.game-controls button.btn-secondary {
+    background: var(--color-grey-medium);
+}
+
+.controls-spacer {
+    flex: 1;
+}
+
+/* Chess arena: board + side panel */
+.chess-arena {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+}
+
+/* Board column */
+.board-column {
+    flex: 0 0 auto;
+}
+
+.player-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-base);
+}
+
+.player-bar .player-name {
+    font-weight: var(--font-weight-bold);
+}
+
+.player-bar .clock {
+    font-family: var(--font-family-monospace);
+    font-size: 18px;
+    padding: 2px 8px;
+    border-radius: var(--border-radius-base);
+    background: var(--color-grey-very-light);
+    min-width: 80px;
+    text-align: center;
+}
+
+.player-bar .clock.active {
+    background: var(--color-dark-blue);
+    color: var(--color-white);
+}
+
+.player-bar .clock.low-time {
+    background: var(--color-pink);
+    color: var(--color-white);
+    animation: pulse-clock 1s ease-in-out infinite;
+}
+
+@keyframes pulse-clock {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Board square colors */
+.board-b72b1z .square-55d63 {
+    /* Light squares */
+    background-color: #f0d9b5;
+}
+.board-b72b1z .square-55d63.black-3c85d {
+    /* Dark squares */
+    background-color: #b58863;
+}
+
+/* Highlights */
+.square-55d63.highlight-last-move {
+    box-shadow: inset 0 0 0 3px var(--color-yellow);
+}
+
+.square-55d63.highlight-legal {
+    background: radial-gradient(circle at center,
+        var(--color-green) 25%, transparent 25%);
+}
+
+.square-55d63.highlight-check {
+    box-shadow: inset 0 0 0 3px var(--color-pink);
+    background: radial-gradient(circle at center,
+        rgba(239, 71, 111, 0.4), transparent 70%);
+}
+
+.square-55d63.highlight-selected {
+    box-shadow: inset 0 0 0 3px var(--color-light-blue);
+}
+
+/* Side panel */
+.side-panel {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Eval bar */
+.eval-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.eval-bar {
+    width: 24px;
+    height: 200px;
+    border: 1px solid var(--color-grey-light);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    background: #333;
+}
+
+.eval-bar-fill {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: #fff;
+    transition: height 0.3s ease;
+}
+
+.eval-text {
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-small);
+    color: var(--color-grey-dark);
+}
+
+/* Engine info */
+.engine-info {
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-tiny);
+    color: var(--color-grey-medium);
+    padding: 8px;
+    background: var(--color-grey-very-light);
+    border-radius: var(--border-radius-base);
+    line-height: 1.6;
+}
+
+.engine-info .info-label {
+    color: var(--color-grey-dark);
+    font-weight: var(--font-weight-bold);
+}
+
+/* Move history */
+.move-history {
+    flex: 1;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--color-grey-very-light);
+    border-radius: var(--border-radius-base);
+    padding: 8px;
+}
+
+.move-history table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.move-history td {
+    padding: 2px 6px;
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-small);
+    cursor: pointer;
+}
+
+.move-history td:first-child {
+    color: var(--color-grey-light);
+    width: 30px;
+    text-align: right;
+}
+
+.move-history td:hover {
+    background: var(--color-grey-very-light);
+}
+
+.move-history td.active {
+    background: var(--color-yellow);
+    font-weight: var(--font-weight-bold);
+}
+
+/* Game status */
+.game-status {
+    text-align: center;
+    padding: 12px;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-base);
+    border-radius: var(--border-radius-base);
+    display: none;
+}
+
+.game-status.visible {
+    display: block;
+}
+
+.game-status.win {
+    background: rgba(6, 214, 160, 0.15);
+    color: var(--color-green);
+    border: 1px solid var(--color-green);
+}
+
+.game-status.loss {
+    background: rgba(239, 71, 111, 0.15);
+    color: var(--color-pink);
+    border: 1px solid var(--color-pink);
+}
+
+.game-status.draw {
+    background: rgba(255, 209, 102, 0.15);
+    color: var(--color-grey-dark);
+    border: 1px solid var(--color-yellow);
+}
+
+/* Promotion dialog */
+.promotion-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.promotion-overlay.visible {
+    display: flex;
+}
+
+.promotion-dialog {
+    background: var(--color-white);
+    border-radius: var(--border-radius-base);
+    padding: var(--padding-sm);
+    display: flex;
+    gap: 8px;
+}
+
+.promotion-dialog img {
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: var(--border-radius-base);
+}
+
+.promotion-dialog img:hover {
+    border-color: var(--color-pink);
+}
+
+/* Responsive */
+@media only screen and (max-width: 540px) {
+    main.chess-main {
+        padding: var(--padding-xs);
+    }
+
+    .chess-arena {
+        flex-direction: column;
+    }
+
+    .side-panel {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .board-column {
+        width: 100%;
+    }
+
+    .game-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controls-spacer {
+        display: none;
+    }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .game-controls {
+        border-color: var(--color-grey-dark);
+    }
+
+    .game-controls select {
+        background: var(--color-grey-very-dark);
+        color: var(--color-darkmode-text);
+        border-color: var(--color-grey-dark);
+    }
+
+    .player-bar .clock {
+        background: var(--color-grey-very-dark);
+        color: var(--color-darkmode-text);
+    }
+
+    .engine-info {
+        background: var(--color-grey-very-dark);
+        color: var(--color-grey-light);
+    }
+
+    .move-history {
+        border-color: var(--color-grey-dark);
+    }
+
+    .promotion-dialog {
+        background: var(--color-darkmode-background);
+    }
+
+    .eval-text {
+        color: var(--color-grey-light);
+    }
+}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess - jonnyspicer.com</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Jost:wght@400;700&display=swap">
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
+    <link rel="stylesheet" href="css/chess.css">
+</head>
+<body>
+    <header>
+        <div class="mobile-header">
+            <a href="https://jonnyspicer.com">jonnyspicer.com</a>
+            <div class="toggle" id="menu-toggle">
+                <span><i></i><i></i><i></i></span>
+            </div>
+        </div>
+        <nav id="main-nav">
+            <a href="https://jonnyspicer.com">Home</a>
+            <a href="https://jonnyspicer.com/about">About</a>
+            <a href="https://jonnyspicer.com/blog">Blog</a>
+            <a href="https://jonnyspicer.com/contact">Contact</a>
+            <a class="active">Chess</a>
+        </nav>
+    </header>
+
+    <main class="chess-main">
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <div class="control-group">
+                <label for="skill-select">Skill Level</label>
+                <select id="skill-select">
+                    <option value="0">0 - Beginner</option>
+                    <option value="3">3 - Novice</option>
+                    <option value="5">5 - Casual</option>
+                    <option value="8">8 - Club</option>
+                    <option value="10" selected>10 - Intermediate</option>
+                    <option value="13">13 - Advanced</option>
+                    <option value="16">16 - Expert</option>
+                    <option value="18">18 - Master</option>
+                    <option value="20">20 - Full Strength</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="time-select">Time Control</label>
+                <select id="time-select">
+                    <option value="60000|0">1 min</option>
+                    <option value="180000|0">3 min</option>
+                    <option value="180000|2000">3+2</option>
+                    <option value="300000|0">5 min</option>
+                    <option value="300000|3000" selected>5+3</option>
+                    <option value="600000|0">10 min</option>
+                    <option value="600000|5000">10+5</option>
+                    <option value="900000|10000">15+10</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="color-select">Play As</label>
+                <select id="color-select">
+                    <option value="white">White</option>
+                    <option value="black">Black</option>
+                    <option value="random">Random</option>
+                </select>
+            </div>
+            <button id="btn-new-game">New Game</button>
+            <div class="controls-spacer"></div>
+            <button id="btn-resign" class="btn-danger" disabled>Resign</button>
+            <button id="btn-draw" class="btn-secondary" disabled>Draw</button>
+        </div>
+
+        <!-- Chess Arena -->
+        <div class="chess-arena">
+            <div class="board-column">
+                <!-- Top player bar (opponent) -->
+                <div class="player-bar" id="top-bar">
+                    <span class="player-name" id="top-name">Boudica</span>
+                    <span class="clock" id="top-clock">5:00</span>
+                </div>
+
+                <!-- Board -->
+                <div id="board" style="width: 400px"></div>
+
+                <!-- Bottom player bar (you) -->
+                <div class="player-bar" id="bottom-bar">
+                    <span class="player-name" id="bottom-name">You</span>
+                    <span class="clock" id="bottom-clock">5:00</span>
+                </div>
+            </div>
+
+            <div class="side-panel">
+                <!-- Eval bar -->
+                <div class="eval-container">
+                    <div class="eval-bar">
+                        <div class="eval-bar-fill" id="eval-fill" style="height: 50%"></div>
+                    </div>
+                    <div class="eval-text" id="eval-text">0.0</div>
+                </div>
+
+                <!-- Engine info -->
+                <div class="engine-info" id="engine-info">
+                    <span class="info-label">Depth:</span> <span id="info-depth">-</span><br>
+                    <span class="info-label">PV:</span> <span id="info-pv">-</span>
+                </div>
+
+                <!-- Move history -->
+                <div class="move-history">
+                    <table id="move-table">
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Game status -->
+                <div class="game-status" id="game-status"></div>
+            </div>
+        </div>
+
+        <!-- Promotion dialog -->
+        <div class="promotion-overlay" id="promotion-overlay">
+            <div class="promotion-dialog" id="promotion-dialog"></div>
+        </div>
+    </main>
+
+    <footer>&copy; Jonny Spicer 2026</footer>
+
+    <script src="lib/jquery-3.7.1.min.js"></script>
+    <script src="lib/chess.min.js"></script>
+    <script src="lib/chessboard-1.0.0.min.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/clock.js"></script>
+    <script src="js/engine-info.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

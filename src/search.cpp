@@ -20,6 +20,7 @@ std::atomic<bool> stop_search{false};
 MoveOrderingTables move_ordering;
 SearchInfo search_info;
 TimeManager time_manager;
+int skill_level = 20;
 
 // LMR reduction table
 int LMR_TABLE[MAX_PLY][MAX_MOVES];
@@ -1032,6 +1033,12 @@ Move iterative_deepening(Position& pos, SearchLimits& limits) {
 
     // Determine max depth - the time manager handles stopping
     int max_depth = limits.depth > 0 ? limits.depth : DEPTH_MAX;
+
+    // Skill Level depth cap: level 0 = depth 1, level 20 = no cap
+    if (skill_level < 20) {
+        int skill_max = 1 + skill_level;
+        max_depth = std::min(max_depth, skill_max);
+    }
 
     // ========================================================================
     // Iterative Deepening Loop

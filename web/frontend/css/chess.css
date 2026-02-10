@@ -352,6 +352,10 @@ main.chess-main {
         border-color: var(--color-grey-dark);
     }
 
+    .game-controls label {
+        color: var(--color-darkmode-text);
+    }
+
     .game-controls select {
         background: var(--color-grey-very-dark);
         color: var(--color-darkmode-text);
@@ -368,6 +372,10 @@ main.chess-main {
         color: var(--color-grey-light);
     }
 
+    .engine-info .info-label {
+        color: var(--color-darkmode-text);
+    }
+
     .move-history {
         border-color: var(--color-grey-dark);
     }
@@ -377,6 +385,14 @@ main.chess-main {
     }
 
     .eval-text {
+        color: var(--color-grey-light);
+    }
+
+    .move-history td {
+        color: var(--color-darkmode-text);
+    }
+
+    .move-history td:first-child {
         color: var(--color-grey-light);
     }
 }

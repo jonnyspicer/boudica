@@ -26,6 +26,12 @@
     </header>
 
     <main class="chess-main">
+        <!-- Info box -->
+        <div class="info-box">
+            <p>Boudica is an experimental chess engine primarily built by prompting <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>. It is named after <a href="https://en.wikipedia.org/wiki/Boudica" target="_blank" rel="noopener">Boudica, queen of the Iceni</a>.</p>
+            <p>Press <strong>New Game</strong> to start playing.</p>
+        </div>
+
         <!-- Game Controls -->
         <div class="game-controls">
             <div class="control-group">
@@ -78,8 +84,14 @@
                     <span class="clock" id="top-clock">5:00</span>
                 </div>
 
-                <!-- Board -->
-                <div id="board" style="width: 400px"></div>
+                <!-- Board + eval bar -->
+                <div class="board-row">
+                    <div id="board" style="width: 400px"></div>
+                    <div class="eval-bar">
+                        <div class="eval-bar-fill" id="eval-fill" style="height: 50%"></div>
+                        <span class="eval-text" id="eval-text">0.0</span>
+                    </div>
+                </div>
 
                 <!-- Bottom player bar (you) -->
                 <div class="player-bar" id="bottom-bar">
@@ -89,14 +101,6 @@
             </div>
 
             <div class="side-panel">
-                <!-- Eval bar -->
-                <div class="eval-container">
-                    <div class="eval-bar">
-                        <div class="eval-bar-fill" id="eval-fill" style="height: 50%"></div>
-                    </div>
-                    <div class="eval-text" id="eval-text">0.0</div>
-                </div>
-
                 <!-- Engine info -->
                 <div class="engine-info" id="engine-info">
                     <span class="info-label">Depth:</span> <span id="info-depth">-</span><br>

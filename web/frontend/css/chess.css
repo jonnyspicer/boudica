@@ -55,7 +55,7 @@ main.chess-main {
 .game-controls button {
     background: var(--color-text);
     color: var(--color-white);
-    border: none;
+    border: 2px solid transparent;
     font-weight: var(--font-weight-bold);
 }
 
@@ -85,6 +85,12 @@ main.chess-main {
 /* Board column */
 .board-column {
     flex: 0 0 auto;
+}
+
+.board-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
 }
 
 .player-bar {
@@ -167,15 +173,8 @@ main.chess-main {
 }
 
 /* Eval bar */
-.eval-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
 .eval-bar {
-    width: 24px;
-    height: 200px;
+    width: 30px;
     border: 1px solid var(--color-grey-light);
     border-radius: 2px;
     position: relative;
@@ -192,9 +191,16 @@ main.chess-main {
 }
 
 .eval-text {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
     font-family: var(--font-family-monospace);
-    font-size: var(--font-size-small);
-    color: var(--color-grey-dark);
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    color: #333;
+    z-index: 1;
 }
 
 /* Engine info */
@@ -282,6 +288,28 @@ main.chess-main {
     border: 1px solid var(--color-yellow);
 }
 
+/* Info box */
+.info-box {
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-small);
+    color: var(--color-grey-dark);
+    padding: 8px;
+    background: var(--color-grey-very-light);
+    border-radius: var(--border-radius-base);
+    line-height: 1.6;
+    margin-bottom: var(--margin-sm);
+}
+
+.info-box p {
+    margin: 0;
+    padding: 0 0 4px;
+    font-size: var(--font-size-small);
+}
+
+.info-box p:last-child {
+    padding-bottom: 0;
+}
+
 /* Promotion dialog */
 .promotion-overlay {
     display: none;
@@ -367,9 +395,22 @@ main.chess-main {
         color: var(--color-darkmode-text);
     }
 
-    .engine-info {
+    .engine-info,
+    .info-box {
         background: var(--color-grey-very-dark);
         color: var(--color-grey-light);
+    }
+
+    .game-controls button {
+        background: var(--color-light-blue);
+    }
+
+    .game-controls button.btn-danger {
+        background: var(--color-pink);
+    }
+
+    .game-controls button.btn-secondary {
+        background: var(--color-grey-medium);
     }
 
     .engine-info .info-label {

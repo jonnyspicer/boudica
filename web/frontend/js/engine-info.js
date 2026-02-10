@@ -27,14 +27,13 @@ Boudica.EngineInfo = (function () {
         var pct, text;
 
         if (mate !== null && mate !== undefined) {
-            text = (mate > 0 ? '+' : '') + 'M' + Math.abs(mate);
-            pct = mate > 0 ? 95 : 5;
+            // Mate score is from engine's perspective — negate for player
+            var playerMate = -mate;
+            text = (playerMate > 0 ? '+' : '') + 'M' + Math.abs(playerMate);
+            pct = playerMate > 0 ? 95 : 5;
         } else if (cp !== null && cp !== undefined) {
-            // Flip eval if playing as black
-            var displayCp = cp;
-            if (Boudica.Game && Boudica.Game.getPlayerColor() === 'black') {
-                displayCp = -cp;
-            }
+            // Score is from engine's perspective — negate so positive = good for player
+            var displayCp = -cp;
             // Sigmoid mapping: map cp to 0-100%
             pct = 50 + 50 * (2 / (1 + Math.exp(-displayCp / 200)) - 1);
             pct = Math.max(2, Math.min(98, pct));
@@ -46,6 +45,17 @@ Boudica.EngineInfo = (function () {
 
         fillEl.style.height = pct + '%';
         textEl.textContent = text;
+
+        // Position text: bottom on white fill when winning, top on dark when losing
+        if (pct >= 50) {
+            textEl.style.bottom = '4px';
+            textEl.style.top = 'auto';
+            textEl.style.color = '#333';
+        } else {
+            textEl.style.top = '4px';
+            textEl.style.bottom = 'auto';
+            textEl.style.color = '#fff';
+        }
     }
 
     function clear() {

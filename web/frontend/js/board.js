@@ -11,6 +11,7 @@ Boudica.Board = (function () {
     var lastMoveTo = null;
     var selectedSquare = null;
     var pendingPromotion = null;
+    var _awaitingServer = false; // true after sending a move, prevents snapback
 
     function init() {
         chessGame = new Chess();
@@ -41,8 +42,10 @@ Boudica.Board = (function () {
         });
     }
 
-    function setPosition(fen) {
-        if (board) board.position(fen, false);
+    function setPosition(fen, animate) {
+        if (animate === undefined) animate = true;
+        _awaitingServer = false;
+        if (board) board.position(fen, animate);
         if (chessGame) chessGame.load(fen);
     }
 
@@ -87,6 +90,12 @@ Boudica.Board = (function () {
         lastMoveFrom = null;
         lastMoveTo = null;
         selectedSquare = null;
+        _awaitingServer = false;
+    }
+
+    function cancelPending() {
+        _awaitingServer = false;
+        if (chessGame && board) board.position(chessGame.fen());
     }
 
     // ---- Private ----
@@ -127,6 +136,7 @@ Boudica.Board = (function () {
         chessGame.undo();
 
         // Send move to server
+        _awaitingServer = true;
         var uci = source + target;
         if (Boudica.Game) Boudica.Game.sendMove(uci);
 
@@ -135,6 +145,9 @@ Boudica.Board = (function () {
     }
 
     function _onSnapEnd() {
+        // Skip snapback when we've sent a move to the server —
+        // the piece is already visually at the target from the drag.
+        if (_awaitingServer) return;
         if (chessGame) board.position(chessGame.fen());
     }
 
@@ -170,6 +183,7 @@ Boudica.Board = (function () {
             var testMove = chessGame ? chessGame.move({ from: from, to: to, promotion: 'q' }) : null;
             if (testMove) {
                 chessGame.undo();
+                _awaitingServer = true;
                 var uci = from + to;
                 if (Boudica.Game) Boudica.Game.sendMove(uci);
             }
@@ -242,6 +256,7 @@ Boudica.Board = (function () {
         getOrientation: getOrientation,
         highlightLastMove: highlightLastMove,
         highlightCheck: highlightCheck,
-        reset: reset
+        reset: reset,
+        cancelPending: cancelPending
     };
 })();

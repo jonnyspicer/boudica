@@ -278,5 +278,6 @@ async def _send(ws: WebSocket, data: dict):
     await ws.send_text(json.dumps(data))
 
 
-# Serve frontend static files - must be last
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+# Serve frontend static files - must be last (skipped if directory missing, e.g. in Docker)
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

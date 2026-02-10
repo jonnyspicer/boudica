@@ -94,7 +94,10 @@ Boudica.Game = (function () {
     }
 
     function _onMoveMade(msg) {
-        Boudica.Board.setPosition(msg.fen);
+        // Player's own move: piece already at target from drag/click, no animation.
+        // Engine's move: animate so it's visually distinct.
+        var isEngineMove = (msg.color === 'white') !== (playerColorStr === 'white');
+        Boudica.Board.setPosition(msg.fen, isEngineMove);
         _isPlayerTurn = msg.is_player_turn;
 
         // Highlight last move
@@ -160,7 +163,7 @@ Boudica.Game = (function () {
         console.warn('Game error:', msg.code, msg.message);
         // Snap board back on illegal move
         if (msg.code === 'illegal_move') {
-            // Board will snap back from chessboard.js
+            Boudica.Board.cancelPending();
         }
     }
 

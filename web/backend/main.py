@@ -96,7 +96,8 @@ async def _handle_new_game(websocket: WebSocket, game_id: str, msg: dict):
         await old_engine.stop()
 
     skill_level = max(0, min(20, int(msg.get("skill_level", 10))))
-    time_ms = max(10000, min(3600000, int(msg.get("time_ms", 300000))))
+    raw_time_ms = int(msg.get("time_ms", 300000))
+    time_ms = 0 if raw_time_ms == 0 else max(10000, min(3600000, raw_time_ms))
     increment_ms = max(0, min(60000, int(msg.get("increment_ms", 3000))))
     player_color = msg.get("player_color", "white")
     if player_color not in ("white", "black"):

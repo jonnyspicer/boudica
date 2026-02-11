@@ -85,12 +85,19 @@ main.chess-main {
 /* Board column */
 .board-column {
     flex: 0 0 auto;
+    max-width: 100%;
+}
+
+#board {
+    width: 400px;
+    max-width: 100%;
 }
 
 .board-row {
     display: flex;
     gap: 8px;
     align-items: stretch;
+    max-width: 100%;
 }
 
 .player-bar {
@@ -345,6 +352,83 @@ main.chess-main {
     border-color: var(--color-pink);
 }
 
+/* Info button */
+.game-controls .info-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    margin-left: 0;
+    margin-bottom: 3px;
+    border: 1px solid var(--color-light-blue);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-light-blue);
+    font-family: var(--font-family-body);
+    font-size: 11px;
+    font-weight: normal;
+    cursor: pointer;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.game-controls .info-btn:hover {
+    background: transparent;
+    color: var(--color-dark-blue);
+    border-color: var(--color-dark-blue);
+}
+
+/* Info popup overlay */
+.info-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.info-overlay.visible {
+    display: flex;
+}
+
+.info-popup {
+    background: var(--color-white);
+    border-radius: var(--border-radius-base);
+    padding: var(--padding-sm);
+    max-width: 360px;
+    margin: 0 16px;
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-small);
+    line-height: 1.6;
+    color: var(--color-text);
+}
+
+.info-popup p {
+    margin: 0 0 8px;
+}
+
+.info-popup .info-close {
+    display: block;
+    margin: 12px auto 0;
+    padding: 6px 20px;
+    border: none;
+    border-radius: var(--border-radius-base);
+    background: var(--color-text);
+    color: var(--color-white);
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
+    cursor: pointer;
+}
+
+.info-popup .info-close:hover {
+    opacity: 0.85;
+}
+
 /* Responsive */
 @media only screen and (max-width: 540px) {
     main.chess-main {
@@ -364,9 +448,18 @@ main.chess-main {
         width: 100%;
     }
 
+    #board {
+        width: 100%;
+    }
+
     .game-controls {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .game-controls select,
+    .game-controls button {
+        max-width: 100%;
     }
 
     .controls-spacer {
@@ -421,8 +514,24 @@ main.chess-main {
         border-color: var(--color-grey-dark);
     }
 
-    .promotion-dialog {
+    .promotion-dialog,
+    .info-popup {
         background: var(--color-darkmode-background);
+        color: var(--color-darkmode-text);
+    }
+
+    .game-controls .info-btn {
+        border-color: var(--color-light-blue);
+        color: var(--color-light-blue);
+    }
+
+    .game-controls .info-btn:hover {
+        color: var(--color-white);
+        border-color: var(--color-white);
+    }
+
+    .info-popup .info-close {
+        background: var(--color-light-blue);
     }
 
     .eval-text {

@@ -5,6 +5,7 @@ var Boudica = window.Boudica || {};
 
 Boudica.Clock = (function () {
     var remaining = { white: 300000, black: 300000 };
+    var unlimited = false;
     var activeColor = null;
     var lastSync = 0;
     var intervalId = null;
@@ -12,6 +13,7 @@ Boudica.Clock = (function () {
 
     function start() {
         stop();
+        if (unlimited) return;
         lastSync = Date.now();
         intervalId = setInterval(_tick, 100);
     }
@@ -24,6 +26,7 @@ Boudica.Clock = (function () {
     }
 
     function syncTime(clocks) {
+        unlimited = !!clocks.unlimited;
         remaining.white = clocks.white.remaining_ms;
         remaining.black = clocks.black.remaining_ms;
         lastSync = Date.now();
@@ -37,7 +40,7 @@ Boudica.Clock = (function () {
     }
 
     function _tick() {
-        if (!activeColor) return;
+        if (!activeColor || unlimited) return;
         var elapsed = Date.now() - lastSync;
         var display = remaining[activeColor] - elapsed;
         if (display < 0) display = 0;
@@ -52,6 +55,13 @@ Boudica.Clock = (function () {
     function _renderClock(color, ms) {
         var el = _getClockEl(color);
         if (!el) return;
+
+        if (unlimited) {
+            el.textContent = '\u2013:\u2013\u2013';
+            el.classList.toggle('active', activeColor === color);
+            el.classList.remove('low-time');
+            return;
+        }
 
         el.textContent = _formatTime(ms);
 

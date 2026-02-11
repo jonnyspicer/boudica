@@ -45,4 +45,20 @@ $(document).ready(function () {
             $(this).removeClass('visible');
         }
     });
+
+    // Time control info popup
+    $('#time-info-btn').on('click', function (e) {
+        e.preventDefault();
+        $('#time-info-overlay').addClass('visible');
+    });
+
+    $('#time-info-overlay').on('click', function (e) {
+        if (e.target === this) {
+            $(this).removeClass('visible');
+        }
+    });
+
+    $('#time-info-overlay .info-close').on('click', function () {
+        $('#time-info-overlay').removeClass('visible');
+    });
 });

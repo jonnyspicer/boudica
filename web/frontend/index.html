@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess - jonnyspicer.com</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Jost:wght@400;700&display=swap">
+    <link rel="icon" href="favicon.ico">
     <link rel="stylesheet" href="css/design-system.css">
     <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="css/chess.css">
@@ -12,7 +13,6 @@
 <body>
     <header>
         <div class="mobile-header">
-            <a href="https://jonnyspicer.com">jonnyspicer.com</a>
             <div class="toggle" id="menu-toggle">
                 <span><i></i><i></i><i></i></span>
             </div>
@@ -28,7 +28,7 @@
     <main class="chess-main">
         <!-- Info box -->
         <div class="info-box">
-            <p>Boudica is an experimental chess engine primarily built by prompting <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>. It is named after <a href="https://en.wikipedia.org/wiki/Boudica" target="_blank" rel="noopener">Boudica, queen of the Iceni</a>.</p>
+            <p>Boudica is an experimental chess engine primarily built by prompting <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>. It is named after <a href="https://en.wikipedia.org/wiki/Boudica" target="_blank" rel="noopener">Boudica, queen of the Iceni</a>. At full strength it plays at roughly ~2100 ELO.</p>
             <p>Press <strong>New Game</strong> to start playing.</p>
         </div>
 
@@ -49,8 +49,9 @@
                 </select>
             </div>
             <div class="control-group">
-                <label for="time-select">Time Control</label>
+                <label for="time-select">Time Control <button class="info-btn" id="time-info-btn" type="button">?</button></label>
                 <select id="time-select">
+                    <option value="0|0">No Limit</option>
                     <option value="60000|0">1 min</option>
                     <option value="180000|0">3 min</option>
                     <option value="180000|2000">3+2</option>
@@ -86,7 +87,7 @@
 
                 <!-- Board + eval bar -->
                 <div class="board-row">
-                    <div id="board" style="width: 400px"></div>
+                    <div id="board"></div>
                     <div class="eval-bar">
                         <div class="eval-bar-fill" id="eval-fill" style="height: 50%"></div>
                         <span class="eval-text" id="eval-text">0.0</span>
@@ -122,6 +123,16 @@
         <!-- Promotion dialog -->
         <div class="promotion-overlay" id="promotion-overlay">
             <div class="promotion-dialog" id="promotion-dialog"></div>
+        </div>
+
+        <!-- Time control info popup -->
+        <div class="info-overlay" id="time-info-overlay">
+            <div class="info-popup">
+                <p><strong>Time Control</strong></p>
+                <p>Formats like <strong>5+3</strong> mean each player starts with <strong>5 minutes</strong> on their clock, and <strong>3 seconds</strong> are added after each move (increment).</p>
+                <p><strong>No Limit</strong> means there is no clock &mdash; take as long as you like.</p>
+                <button class="info-close" type="button">Got it</button>
+            </div>
         </div>
     </main>
 

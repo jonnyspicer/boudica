@@ -9,16 +9,21 @@ class ClockManager:
     """Server-authoritative chess clock."""
 
     def __init__(self, time_ms: int = 300000, increment_ms: int = 3000):
+        self.unlimited = time_ms == 0
         self.remaining = {chess.WHITE: time_ms, chess.BLACK: time_ms}
         self.increment = increment_ms
         self._running_color: chess.Color | None = None
         self._last_tick: float = 0.0
 
     def start(self, color: chess.Color) -> None:
+        if self.unlimited:
+            return
         self._running_color = color
         self._last_tick = time.monotonic()
 
     def stop_and_increment(self) -> None:
+        if self.unlimited:
+            return
         if self._running_color is not None:
             elapsed_ms = int((time.monotonic() - self._last_tick) * 1000)
             self.remaining[self._running_color] -= elapsed_ms
@@ -29,12 +34,16 @@ class ClockManager:
             self._running_color = None
 
     def is_flag_fallen(self, color: chess.Color) -> bool:
+        if self.unlimited:
+            return False
         if self._running_color == color:
             elapsed_ms = int((time.monotonic() - self._last_tick) * 1000)
             return (self.remaining[color] - elapsed_ms) <= 0
         return self.remaining[color] <= 0
 
     def get_remaining(self, color: chess.Color) -> int:
+        if self.unlimited:
+            return 0
         if self._running_color == color:
             elapsed_ms = int((time.monotonic() - self._last_tick) * 1000)
             return max(0, self.remaining[color] - elapsed_ms)
@@ -44,6 +53,7 @@ class ClockManager:
         return {
             "white": {"remaining_ms": self.get_remaining(chess.WHITE)},
             "black": {"remaining_ms": self.get_remaining(chess.BLACK)},
+            "unlimited": self.unlimited,
         }
 
 
@@ -166,6 +176,14 @@ class GameManager:
 
     def get_engine_clock_params(self) -> dict:
         """Get clock values formatted for UCI go command."""
+        if self.clock.unlimited:
+            # Give engine generous but finite time so it still thinks reasonably
+            return {
+                "wtime": 600000,
+                "btime": 600000,
+                "winc": 0,
+                "binc": 0,
+            }
         return {
             "wtime": self.clock.get_remaining(chess.WHITE),
             "btime": self.clock.get_remaining(chess.BLACK),

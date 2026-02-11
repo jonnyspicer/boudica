@@ -6,12 +6,6 @@ $(document).ready(function () {
     Boudica.Board.init();
     Boudica.Game.init();
 
-    // Menu toggle (mobile)
-    $('#menu-toggle').on('click', function () {
-        $(this).toggleClass('is-active');
-        $('#main-nav').toggleClass('expanded');
-    });
-
     // New Game button
     $('#btn-new-game').on('click', function () {
         var skill = parseInt($('#skill-select').val());

@@ -106,10 +106,18 @@ class UCIEngine:
 
         return bestmove, infos
 
+    async def stop_search(self) -> None:
+        """Send 'stop' to interrupt an ongoing search."""
+        try:
+            await self._send("stop")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     async def stop(self) -> None:
         """Stop the engine process."""
         if self.process and self.process.returncode is None:
             try:
+                await self._send("stop")
                 await self._send("quit")
                 try:
                     await asyncio.wait_for(self.process.wait(), timeout=2.0)

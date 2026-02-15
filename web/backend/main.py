@@ -1,5 +1,6 @@
 """FastAPI backend for Boudica chess web interface."""
 import json
+import logging
 import uuid
 import asyncio
 from contextlib import asynccontextmanager
@@ -12,6 +13,8 @@ import os
 
 from .engine import UCIEngine
 from .game import GameManager
+
+logger = logging.getLogger(__name__)
 
 # Active games: game_id -> (GameManager, UCIEngine)
 games: dict[str, tuple[GameManager, UCIEngine]] = {}
@@ -49,6 +52,18 @@ async def create_game():
 async def websocket_game(websocket: WebSocket, game_id: str):
     await websocket.accept()
 
+    engine_task: asyncio.Task | None = None
+
+    async def _cancel_engine_task():
+        nonlocal engine_task
+        if engine_task and not engine_task.done():
+            engine_task.cancel()
+            try:
+                await engine_task
+            except (asyncio.CancelledError, Exception):
+                pass
+            engine_task = None
+
     try:
         while True:
             raw = await websocket.receive_text()
@@ -65,10 +80,17 @@ async def websocket_game(websocket: WebSocket, game_id: str):
             msg_type = msg.get("type")
 
             if msg_type == "new_game":
-                await _handle_new_game(websocket, game_id, msg)
+                await _cancel_engine_task()
+                engine_task = await _handle_new_game(
+                    websocket, game_id, msg
+                )
             elif msg_type == "player_move":
-                await _handle_player_move(websocket, game_id, msg)
+                await _cancel_engine_task()
+                engine_task = await _handle_player_move(
+                    websocket, game_id, msg
+                )
             elif msg_type == "resign":
+                await _cancel_engine_task()
                 await _handle_resign(websocket, game_id)
             elif msg_type == "offer_draw":
                 await _handle_draw(websocket, game_id)
@@ -83,13 +105,19 @@ async def websocket_game(websocket: WebSocket, game_id: str):
 
     except WebSocketDisconnect:
         pass
+    except Exception:
+        logger.exception("Unexpected error in websocket handler for game %s", game_id)
     finally:
+        await _cancel_engine_task()
         if game_id in games:
             _, engine = games.pop(game_id)
             await engine.stop()
 
 
-async def _handle_new_game(websocket: WebSocket, game_id: str, msg: dict):
+async def _handle_new_game(
+    websocket: WebSocket, game_id: str, msg: dict
+) -> asyncio.Task | None:
+    """Set up a new game. Returns an engine task if the engine moves first."""
     # Stop existing game if any
     if game_id in games:
         _, old_engine = games.pop(game_id)
@@ -125,19 +153,25 @@ async def _handle_new_game(websocket: WebSocket, game_id: str, msg: dict):
         "clocks": game.clock.to_dict(),
     })
 
-    # If engine plays first (player is black), make engine move
+    # If engine plays first (player is black), start engine move as task
     if game.is_engine_turn:
-        await _do_engine_move(websocket, game_id)
+        return asyncio.create_task(
+            _do_engine_move(websocket, game_id)
+        )
+    return None
 
 
-async def _handle_player_move(websocket: WebSocket, game_id: str, msg: dict):
+async def _handle_player_move(
+    websocket: WebSocket, game_id: str, msg: dict
+) -> asyncio.Task | None:
+    """Process a player move. Returns an engine task if it's the engine's turn."""
     if game_id not in games:
         await _send(websocket, {
             "type": "error",
             "code": "no_game",
             "message": "No active game. Send new_game first.",
         })
-        return
+        return None
 
     game, engine = games[game_id]
     uci = msg.get("uci", "")
@@ -157,7 +191,7 @@ async def _handle_player_move(websocket: WebSocket, game_id: str, msg: dict):
                 "code": error,
                 "message": error,
             })
-        return
+        return None
 
     # Send player move confirmation - the color that just moved
     moved_color = "black" if game.board.turn == chess.WHITE else "white"
@@ -179,9 +213,11 @@ async def _handle_player_move(websocket: WebSocket, game_id: str, msg: dict):
             "termination": game.termination,
             "fen": game.fen,
         })
-        return
+        return None
 
-    await _do_engine_move(websocket, game_id)
+    return asyncio.create_task(
+        _do_engine_move(websocket, game_id)
+    )
 
 
 async def _do_engine_move(websocket: WebSocket, game_id: str):
@@ -193,13 +229,16 @@ async def _do_engine_move(websocket: WebSocket, game_id: str):
     await engine.set_position(game.moves if game.moves else None)
 
     async def info_callback(info):
-        await _send(websocket, {
-            "type": "engine_thinking",
-            "depth": info.depth,
-            "score_cp": info.score_cp,
-            "score_mate": info.score_mate,
-            "pv": info.pv,
-        })
+        try:
+            await _send(websocket, {
+                "type": "engine_thinking",
+                "depth": info.depth,
+                "score_cp": info.score_cp,
+                "score_mate": info.score_mate,
+                "pv": info.pv,
+            })
+        except Exception:
+            pass  # WebSocket may have closed; search will be cancelled
 
     clock_params = game.get_engine_clock_params()
     bestmove, _ = await engine.search(

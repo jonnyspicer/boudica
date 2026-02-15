@@ -12,26 +12,39 @@ Boudica.WebSocketClient = (function () {
     var reconnectTimer = null;
 
     function connect(id) {
-        gameId = id;
+        // Kill any pending reconnect for the old game
+        clearTimeout(reconnectTimer);
         reconnectAttempts = 0;
+        maxReconnect = 5;
+
+        // Close old socket without triggering reconnect
+        if (ws) {
+            ws.onclose = null;
+            ws.onerror = null;
+            if (ws.readyState <= 1) {
+                ws.close();
+            }
+            ws = null;
+        }
+
+        gameId = id;
         _doConnect();
     }
 
     function _doConnect() {
-        if (ws && ws.readyState <= 1) {
-            ws.close();
-        }
-
         var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
         var url = protocol + '//' + location.host + '/ws/game/' + gameId;
+        var connectingId = gameId;
         ws = new WebSocket(url);
 
         ws.onopen = function () {
+            if (gameId !== connectingId) return;
             reconnectAttempts = 0;
             _emit('connected', {});
         };
 
         ws.onmessage = function (event) {
+            if (gameId !== connectingId) return;
             try {
                 var msg = JSON.parse(event.data);
                 _emit(msg.type, msg);
@@ -41,6 +54,7 @@ Boudica.WebSocketClient = (function () {
         };
 
         ws.onclose = function () {
+            if (gameId !== connectingId) return;
             _emit('disconnected', {});
             _scheduleReconnect();
         };

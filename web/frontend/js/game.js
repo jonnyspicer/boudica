@@ -8,7 +8,7 @@ Boudica.Game = (function () {
     var playerColorStr = 'white';
     var _isPlayerTurn = false;
     var _isGameOver = false;
-    var moveHistory = []; // [{moveNum, white: san, black: san}]
+    var moveHistory = []; // [{num, white: san, black: san}]
     var moveCount = 0;
 
     function init() {
@@ -26,6 +26,7 @@ Boudica.Game = (function () {
         // Generate game ID
         gameId = _uuid();
         _isGameOver = false;
+        _isPlayerTurn = false;
         moveHistory = [];
         moveCount = 0;
         playerColorStr = color;
@@ -35,11 +36,8 @@ Boudica.Game = (function () {
         Boudica.Board.setOrientation(color);
         Boudica.EngineInfo.clear();
         Boudica.Clock.stop();
-        _clearMoveTable();
-        _hideStatus();
-
-        // Update player bars
-        _updatePlayerBars(color);
+        _renderMoveTable();
+        _setStatus(['Starting a new game…']);
 
         // Enable buttons
         document.getElementById('btn-resign').disabled = false;
@@ -62,6 +60,8 @@ Boudica.Game = (function () {
     }
 
     function sendMove(uci) {
+        // Our move is shown at once; until the server answers, it's Boudica's turn.
+        _isPlayerTurn = false;
         Boudica.WebSocketClient.send({
             type: 'player_move',
             uci: uci
@@ -74,6 +74,7 @@ Boudica.Game = (function () {
 
     function offerDraw() {
         Boudica.WebSocketClient.send({ type: 'offer_draw' });
+        _setStatus(['You offered a draw. Waiting for Boudica…']);
     }
 
     function isPlayerTurn() { return _isPlayerTurn; }
@@ -91,24 +92,19 @@ Boudica.Game = (function () {
         Boudica.Clock.syncTime(msg.clocks);
         Boudica.Clock.setActive(_isPlayerTurn ? msg.player_color : (msg.player_color === 'white' ? 'black' : 'white'));
         Boudica.Clock.start();
+
+        _setStatus([_isPlayerTurn ? 'You play White. Your move.' : 'You play Black. Boudica is thinking…']);
     }
 
     function _onMoveMade(msg) {
-        // Player's own move: piece already at target from drag/click, no animation.
-        // Engine's move: animate so it's visually distinct.
         var isEngineMove = (msg.color === 'white') !== (playerColorStr === 'white');
-        Boudica.Board.setPosition(msg.fen, isEngineMove);
+        Boudica.Board.setPosition(msg.fen);
         _isPlayerTurn = msg.is_player_turn;
 
         // Highlight last move
         if (msg.uci && msg.uci.length >= 4) {
-            var from = msg.uci.substring(0, 2);
-            var to = msg.uci.substring(2, 4);
-            Boudica.Board.highlightLastMove(from, to);
+            Boudica.Board.highlightLastMove(msg.uci.substring(0, 2), msg.uci.substring(2, 4));
         }
-
-        // Check highlight
-        Boudica.Board.highlightCheck();
 
         // Sync clocks
         Boudica.Clock.syncTime(msg.clocks);
@@ -117,7 +113,17 @@ Boudica.Game = (function () {
         Boudica.Clock.setActive(activeColor);
 
         // Add to move history
-        _addMove(msg.color, msg.san);
+        var numbered = _addMove(msg.color, msg.san);
+
+        if (isEngineMove) {
+            Boudica.EngineInfo.afterEngineMove(msg.uci);
+            _setStatus([
+                'Boudica played ', _mono(numbered), '.',
+                Boudica.Board.isInCheck() ? " You're in check - your move." : ' Your move.'
+            ]);
+        } else {
+            _setStatus(['Boudica is thinking…']);
+        }
     }
 
     function _onEngineThinking(msg) {
@@ -128,136 +134,124 @@ Boudica.Game = (function () {
         _isGameOver = true;
         _isPlayerTurn = false;
         Boudica.Clock.stop();
+        Boudica.Clock.clearActive();
 
         document.getElementById('btn-resign').disabled = true;
         document.getElementById('btn-draw').disabled = true;
 
         Boudica.Board.setPosition(msg.fen);
 
-        // Show result
-        var statusEl = document.getElementById('game-status');
-        var text = '';
-        var cls = 'draw';
-
+        var result, playerWon = false;
         if (msg.result === 'draw') {
-            text = 'Draw - ' + _formatTermination(msg.termination);
-            cls = 'draw';
+            result = 'Draw';
         } else {
-            var winnerIsPlayer =
+            playerWon =
                 (msg.result === 'white_wins' && playerColorStr === 'white') ||
                 (msg.result === 'black_wins' && playerColorStr === 'black');
-            if (winnerIsPlayer) {
-                text = 'You win! - ' + _formatTermination(msg.termination);
-                cls = 'win';
-            } else {
-                text = 'Boudica wins - ' + _formatTermination(msg.termination);
-                cls = 'loss';
-            }
+            result = playerWon ? 'You win' : 'Boudica wins';
         }
 
-        statusEl.textContent = text;
-        statusEl.className = 'game-status visible ' + cls;
+        _setStatus([
+            _bold(result),
+            _describeEnding(msg.termination, playerWon),
+            ' Choose your settings and press Start to play again.'
+        ]);
     }
 
     function _onError(msg) {
         console.warn('Game error:', msg.code, msg.message);
-        // Snap board back on illegal move
+        // Put the board back on an illegal move
         if (msg.code === 'illegal_move') {
+            _isPlayerTurn = true;
             Boudica.Board.cancelPending();
+            _setStatus(["That move isn't allowed. Your move."]);
         }
     }
 
     function _onDrawDeclined() {
-        // Could show a toast, for now just log
-        console.log('Draw offer declined');
+        _setStatus(['Boudica declined the draw.', _isPlayerTurn ? ' Your move.' : '']);
     }
 
     function _onClockUpdate(msg) {
         Boudica.Clock.syncTime(msg.clocks);
     }
 
+    // ---- Status ----
+
+    // The status line is one sentence or two, built from text and elements.
+    function _setStatus(parts) {
+        var el = document.getElementById('game-status');
+        el.replaceChildren.apply(el, parts.map(function (p) {
+            return typeof p === 'string' ? document.createTextNode(p) : p;
+        }));
+    }
+
+    function _describeEnding(termination, playerWon) {
+        var endings = {
+            checkmate: ' by checkmate.',
+            flag: ' on time.',
+            resignation: playerWon ? ' - Boudica resigned.' : ' - you resigned.',
+            stalemate: ' by stalemate.',
+            insufficient_material: ' - neither side has enough pieces left to checkmate.',
+            fifty_moves: ' by the 50-move rule.',
+            threefold_repetition: ' by threefold repetition.',
+            agreement: ' by agreement.'
+        };
+        if (endings[termination]) return endings[termination];
+        return termination ? ' - ' + String(termination).replace(/_/g, ' ') + '.' : '.';
+    }
+
+    function _bold(text) {
+        var b = document.createElement('b');
+        b.textContent = text;
+        return b;
+    }
+
+    function _mono(text) {
+        var span = document.createElement('span');
+        span.className = 'mono';
+        span.textContent = text;
+        return span;
+    }
+
     // ---- Move History ----
 
+    // Records a move and returns it numbered, e.g. "8...d6".
     function _addMove(color, san) {
         if (color === 'white') {
             moveCount++;
             moveHistory.push({ num: moveCount, white: san, black: '' });
+            _renderMoveTable();
+            return moveCount + '.' + san;
+        }
+        if (moveHistory.length === 0) {
+            moveCount++;
+            moveHistory.push({ num: moveCount, white: '...', black: san });
         } else {
-            if (moveHistory.length === 0) {
-                moveCount++;
-                moveHistory.push({ num: moveCount, white: '...', black: san });
-            } else {
-                moveHistory[moveHistory.length - 1].black = san;
-            }
+            moveHistory[moveHistory.length - 1].black = san;
         }
         _renderMoveTable();
+        return moveHistory[moveHistory.length - 1].num + '...' + san;
     }
 
     function _renderMoveTable() {
         var tbody = document.querySelector('#move-table tbody');
-        // Clear safely
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-
-        for (var i = 0; i < moveHistory.length; i++) {
+        var rows = moveHistory.map(function (m) {
             var row = document.createElement('tr');
+            [m.num + '.', m.white, m.black].forEach(function (text) {
+                var cell = document.createElement('td');
+                cell.textContent = text;
+                row.appendChild(cell);
+            });
+            return row;
+        });
+        tbody.replaceChildren.apply(tbody, rows);
 
-            var numCell = document.createElement('td');
-            numCell.textContent = moveHistory[i].num + '.';
-            row.appendChild(numCell);
+        document.getElementById('moves-empty').hidden = moveHistory.length > 0;
 
-            var whiteCell = document.createElement('td');
-            whiteCell.textContent = moveHistory[i].white;
-            row.appendChild(whiteCell);
-
-            var blackCell = document.createElement('td');
-            blackCell.textContent = moveHistory[i].black;
-            row.appendChild(blackCell);
-
-            tbody.appendChild(row);
-        }
-
-        // Scroll to bottom
-        var container = document.querySelector('.move-history');
+        // Keep the latest move in view
+        var container = document.getElementById('moves');
         if (container) container.scrollTop = container.scrollHeight;
-    }
-
-    function _clearMoveTable() {
-        var tbody = document.querySelector('#move-table tbody');
-        if (tbody) {
-            while (tbody.firstChild) {
-                tbody.removeChild(tbody.firstChild);
-            }
-        }
-    }
-
-    function _hideStatus() {
-        var el = document.getElementById('game-status');
-        if (el) {
-            el.className = 'game-status';
-            el.textContent = '';
-        }
-    }
-
-    function _updatePlayerBars(color) {
-        var topName = document.getElementById('top-name');
-        var bottomName = document.getElementById('bottom-name');
-        if (topName) topName.textContent = 'Boudica';
-        if (bottomName) bottomName.textContent = 'You';
-    }
-
-    function _formatTermination(t) {
-        var map = {
-            checkmate: 'Checkmate',
-            stalemate: 'Stalemate',
-            insufficient_material: 'Insufficient material',
-            fifty_moves: '50-move rule',
-            threefold_repetition: 'Threefold repetition',
-            resignation: 'Resignation',
-            flag: 'Time forfeit'
-        };
-        return map[t] || t;
     }
 
     function _uuid() {

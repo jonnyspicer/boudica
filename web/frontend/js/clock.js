@@ -1,5 +1,5 @@
 /**
- * Client-side chess clock display.
+ * Client-side chess clock display. The running clock is shown in <mark>.
  */
 var Boudica = window.Boudica || {};
 
@@ -9,7 +9,6 @@ Boudica.Clock = (function () {
     var activeColor = null;
     var lastSync = 0;
     var intervalId = null;
-    var LOW_TIME_MS = 30000;
 
     function start() {
         stop();
@@ -23,6 +22,12 @@ Boudica.Clock = (function () {
             clearInterval(intervalId);
             intervalId = null;
         }
+    }
+
+    // When the game ends nothing is running, so nothing stays highlighted
+    function clearActive() {
+        activeColor = null;
+        _render();
     }
 
     function syncTime(clocks) {
@@ -56,20 +61,17 @@ Boudica.Clock = (function () {
         var el = _getClockEl(color);
         if (!el) return;
 
-        if (unlimited) {
-            el.textContent = '\u2013:\u2013\u2013';
-            el.classList.toggle('active', activeColor === color);
-            el.classList.remove('low-time');
-            return;
+        var text = unlimited ? 'no limit' : _formatTime(ms);
+        if (activeColor === color && !unlimited) {
+            var mark = el.firstElementChild;
+            if (!mark || mark.tagName !== 'MARK') {
+                mark = document.createElement('mark');
+                el.replaceChildren(mark);
+            }
+            mark.textContent = text;
+        } else {
+            el.textContent = text;
         }
-
-        el.textContent = _formatTime(ms);
-
-        // Active state
-        el.classList.toggle('active', activeColor === color);
-
-        // Low time warning
-        el.classList.toggle('low-time', ms < LOW_TIME_MS && activeColor === color);
     }
 
     function _getClockEl(color) {
@@ -91,6 +93,7 @@ Boudica.Clock = (function () {
     return {
         start: start,
         stop: stop,
+        clearActive: clearActive,
         syncTime: syncTime,
         setActive: setActive
     };

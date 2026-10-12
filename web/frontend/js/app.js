@@ -1,19 +1,19 @@
 /**
  * App initialization: wire UI controls to game/board/clock.
  */
-$(document).ready(function () {
+document.addEventListener('DOMContentLoaded', function () {
     // Init modules
     Boudica.Board.init();
     Boudica.Game.init();
 
-    // New Game button
-    $('#btn-new-game').on('click', function () {
-        var skill = parseInt($('#skill-select').val());
-        var timeParts = $('#time-select').val().split('|');
-        var timeMs = parseInt(timeParts[0]);
-        var incMs = parseInt(timeParts[1]);
-        var colorChoice = $('#color-select').val();
-        var color = colorChoice;
+    // Start a new game from the settings fieldset
+    document.getElementById('new-game-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var skill = parseInt(document.getElementById('skill-select').value, 10);
+        var timeParts = document.getElementById('time-select').value.split('|');
+        var timeMs = parseInt(timeParts[0], 10);
+        var incMs = parseInt(timeParts[1], 10);
+        var color = document.getElementById('color-select').value;
         if (color === 'random') {
             color = Math.random() < 0.5 ? 'white' : 'black';
         }
@@ -21,38 +21,14 @@ $(document).ready(function () {
         Boudica.Game.newGame(skill, timeMs, incMs, color);
     });
 
-    // Resign
-    $('#btn-resign').on('click', function () {
-        if (confirm('Are you sure you want to resign?')) {
-            Boudica.Game.resign();
-        }
+    // Resign sits inside a details element that says what it does, so no confirm box
+    document.getElementById('btn-resign').addEventListener('click', function () {
+        document.getElementById('resign-details').open = false;
+        Boudica.Game.resign();
     });
 
     // Draw offer
-    $('#btn-draw').on('click', function () {
+    document.getElementById('btn-draw').addEventListener('click', function () {
         Boudica.Game.offerDraw();
-    });
-
-    // Dismiss promotion overlay on background click
-    $('#promotion-overlay').on('click', function (e) {
-        if (e.target === this) {
-            $(this).removeClass('visible');
-        }
-    });
-
-    // Time control info popup
-    $('#time-info-btn').on('click', function (e) {
-        e.preventDefault();
-        $('#time-info-overlay').addClass('visible');
-    });
-
-    $('#time-info-overlay').on('click', function (e) {
-        if (e.target === this) {
-            $(this).removeClass('visible');
-        }
-    });
-
-    $('#time-info-overlay .info-close').on('click', function () {
-        $('#time-info-overlay').removeClass('visible');
     });
 });

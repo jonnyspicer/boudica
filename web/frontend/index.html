@@ -1,137 +1,106 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en-GB">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess - allinlabs.io</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Jost:wght@400;700&display=swap">
-    <link rel="icon" href="favicon.ico">
-    <link rel="stylesheet" href="css/design-system.css">
-    <link rel="stylesheet" href="lib/chessboard-1.0.0.min.css">
-    <link rel="stylesheet" href="css/chess.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess - All In Labs</title>
+<link rel="stylesheet" href="https://allinlabs.io/ail.css">
+<link rel="stylesheet" href="css/board.css">
+<link rel="icon" href="https://allinlabs.io/favicon.ico" sizes="32x32">
+<link rel="icon" href="https://allinlabs.io/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="https://allinlabs.io/apple-touch-icon.png">
 </head>
-<body>
-    <main class="chess-main">
-        <!-- Info box -->
-        <div class="info-box">
-            <p>Boudica is an experimental chess engine primarily built by prompting <a href="https://claude.ai/code" target="_blank" rel="noopener">Claude Code</a>. It is named after <a href="https://en.wikipedia.org/wiki/Boudica" target="_blank" rel="noopener">Boudica, queen of the Iceni</a>. At full strength it plays at roughly ~2100 ELO.</p>
-            <p>Press <strong>New Game</strong> to start playing.</p>
-        </div>
+<body class="wide">
+<main>
+<h1>Chess</h1>
+<p>Boudica is an experimental chess engine, built mostly by prompting <a href="https://claude.ai/code">Claude Code</a> and named after <a href="https://en.wikipedia.org/wiki/Boudica">Boudica, queen of the Iceni</a>. At full strength it plays at about 2100 Elo.</p>
 
-        <!-- Game Controls -->
-        <div class="game-controls">
-            <div class="control-group">
-                <label for="skill-select">Skill Level</label>
-                <select id="skill-select">
-                    <option value="0">0 - Beginner</option>
-                    <option value="3">3 - Novice</option>
-                    <option value="5">5 - Casual</option>
-                    <option value="8">8 - Club</option>
-                    <option value="10" selected>10 - Intermediate</option>
-                    <option value="13">13 - Advanced</option>
-                    <option value="16">16 - Expert</option>
-                    <option value="18">18 - Master</option>
-                    <option value="20">20 - Full Strength</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="time-select">Time Control <button class="info-btn" id="time-info-btn" type="button">?</button></label>
-                <select id="time-select">
-                    <option value="0|0">No Limit</option>
-                    <option value="60000|0">1 min</option>
-                    <option value="180000|0">3 min</option>
-                    <option value="180000|2000">3+2</option>
-                    <option value="300000|0">5 min</option>
-                    <option value="300000|3000" selected>5+3</option>
-                    <option value="600000|0">10 min</option>
-                    <option value="600000|5000">10+5</option>
-                    <option value="900000|10000">15+10</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="color-select">Play As</label>
-                <select id="color-select">
-                    <option value="white">White</option>
-                    <option value="black">Black</option>
-                    <option value="random">Random</option>
-                </select>
-            </div>
-            <button id="btn-new-game">New Game</button>
-            <div class="controls-spacer"></div>
-            <button id="btn-resign" class="btn-danger" disabled>Resign</button>
-            <button id="btn-draw" class="btn-secondary" disabled>Draw</button>
-        </div>
+<form id="new-game-form">
+<fieldset>
+  <legend>New game</legend>
+  <label>Skill level <select id="skill-select">
+    <option value="0">0 - Beginner</option>
+    <option value="3">3 - Novice</option>
+    <option value="5">5 - Casual</option>
+    <option value="8">8 - Club</option>
+    <option value="10" selected>10 - Intermediate</option>
+    <option value="13">13 - Advanced</option>
+    <option value="16">16 - Expert</option>
+    <option value="18">18 - Master</option>
+    <option value="20">20 - Full strength</option>
+  </select></label>
+  <label>Time control <select id="time-select">
+    <option value="0|0">No limit</option>
+    <option value="60000|0">1 minute</option>
+    <option value="180000|0">3 minutes</option>
+    <option value="180000|2000">3+2</option>
+    <option value="300000|0">5 minutes</option>
+    <option value="300000|3000" selected>5+3</option>
+    <option value="600000|0">10 minutes</option>
+    <option value="600000|5000">10+5</option>
+    <option value="900000|10000">15+10</option>
+  </select></label>
+  <label>Play as <select id="color-select">
+    <option value="white">White</option>
+    <option value="black">Black</option>
+    <option value="random">Random</option>
+  </select></label>
+  <button type="submit"><b>Start</b></button>
+  <details>
+    <summary>What does 5+3 mean?</summary>
+    <p>Each player starts with 5 minutes, and 3 seconds are added after every move. No limit means there's no clock.</p>
+  </details>
+</fieldset>
+</form>
 
-        <!-- Chess Arena -->
-        <div class="chess-arena">
-            <div class="board-column">
-                <!-- Top player bar (opponent) -->
-                <div class="player-bar" id="top-bar">
-                    <span class="player-name" id="top-name">Boudica</span>
-                    <span class="clock" id="top-clock">5:00</span>
-                </div>
+<div class="cols">
+  <div>
+    <p>Boudica <span id="top-clock" class="mono">5:00</span></p>
+    <table class="board" id="board" aria-label="Board"></table>
+    <p><b>You</b> <span id="bottom-clock" class="mono">5:00</span></p>
+  </div>
+  <div>
+    <p id="game-status" role="status">Choose your settings and press Start.</p>
 
-                <!-- Board + eval bar -->
-                <div class="board-row">
-                    <div id="board"></div>
-                    <div class="eval-bar">
-                        <div class="eval-bar-fill" id="eval-fill" style="height: 50%"></div>
-                        <span class="eval-text" id="eval-text">0.0</span>
-                    </div>
-                </div>
+    <h2>Evaluation</h2>
+    <p><span id="eval-bar" class="mono" role="img" aria-label="Evaluation: no evaluation yet">White ############............ Black</span><br>
+    <span id="eval-words">No evaluation yet.</span></p>
+    <p id="engine-line" class="muted"></p>
 
-                <!-- Bottom player bar (you) -->
-                <div class="player-bar" id="bottom-bar">
-                    <span class="player-name" id="bottom-name">You</span>
-                    <span class="clock" id="bottom-clock">5:00</span>
-                </div>
-            </div>
+    <h2>Moves</h2>
+    <div class="moves" id="moves">
+      <table class="mono" id="move-table"><tbody></tbody></table>
+    </div>
+    <p id="moves-empty" class="muted">No moves yet.</p>
 
-            <div class="side-panel">
-                <!-- Engine info -->
-                <div class="engine-info" id="engine-info">
-                    <span class="info-label">Depth:</span> <span id="info-depth">-</span><br>
-                    <span class="info-label">PV:</span> <span id="info-pv">-</span>
-                </div>
+    <p><button type="button" id="btn-draw" disabled>Offer draw</button></p>
+    <details id="resign-details">
+      <summary>Resign</summary>
+      <p>Resigning ends the game as a loss. <button type="button" id="btn-resign" disabled>Resign this game</button></p>
+    </details>
+  </div>
+</div>
+</main>
 
-                <!-- Move history -->
-                <div class="move-history">
-                    <table id="move-table">
-                        <tbody></tbody>
-                    </table>
-                </div>
+<dialog id="promotion-dialog" aria-labelledby="promotion-title">
+  <form method="dialog">
+    <h2 id="promotion-title">Promote your pawn</h2>
+    <p>
+      <button value="q"><b>Queen</b></button>
+      <button value="r">Rook</button>
+      <button value="b">Bishop</button>
+      <button value="n">Knight</button>
+    </p>
+    <p><button value="cancel" formnovalidate>Cancel</button></p>
+  </form>
+</dialog>
 
-                <!-- Game status -->
-                <div class="game-status" id="game-status"></div>
-            </div>
-        </div>
-
-        <!-- Promotion dialog -->
-        <div class="promotion-overlay" id="promotion-overlay">
-            <div class="promotion-dialog" id="promotion-dialog"></div>
-        </div>
-
-        <!-- Time control info popup -->
-        <div class="info-overlay" id="time-info-overlay">
-            <div class="info-popup">
-                <p><strong>Time Control</strong></p>
-                <p>Formats like <strong>5+3</strong> mean each player starts with <strong>5 minutes</strong> on their clock, and <strong>3 seconds</strong> are added after each move (increment).</p>
-                <p><strong>No Limit</strong> means there is no clock &mdash; take as long as you like.</p>
-                <button class="info-close" type="button">Got it</button>
-            </div>
-        </div>
-    </main>
-
-    <footer>&copy; Jonny Spicer 2026</footer>
-
-    <script src="lib/jquery-3.7.1.min.js"></script>
-    <script src="lib/chess.min.js"></script>
-    <script src="lib/chessboard-1.0.0.min.js"></script>
-    <script src="js/websocket.js"></script>
-    <script src="js/clock.js"></script>
-    <script src="js/engine-info.js"></script>
-    <script src="js/board.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/app.js"></script>
+<script src="lib/chess.min.js"></script>
+<script src="js/websocket.js"></script>
+<script src="js/clock.js"></script>
+<script src="js/engine-info.js"></script>
+<script src="js/board.js"></script>
+<script src="js/game.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+/* chess.allinlabs.io's own stylesheet. The board is the site's one drawn object;
+   everything else on the page uses ail.css alone. From the design system's Board recipe. */
+
+.board { --sq: min(48px, calc((100vw - 32px - 24px) / 8)); border-collapse: collapse; }
+/* Only the squares stay light in dark mode; the rank and file labels follow the page. */
+.board td { color-scheme: light; color: #000; width: var(--sq); height: var(--sq); padding: 0; text-align: center; background: var(--board-light, #eeeeee); }
+.board td.dark { background: var(--board-dark, #bbbbbb); }
+.board td.last { background: var(--mark, Mark); }
+.board button { all: unset; display: block; width: var(--sq); height: var(--sq); font: calc(var(--sq) * .75)/var(--sq) "DejaVu Sans", "Segoe UI Symbol", "Apple Symbols", serif; cursor: pointer; }
+.board button:focus-visible, .board button.picked { outline: 3px solid #000; outline-offset: -3px; }
+.board .dot { color: #444; }
+.board th { font: 15px var(--font-mono, "Courier New", Courier, monospace); color: var(--muted, light-dark(#555555, #aaaaaa)); padding: 0 6px 0 0; vertical-align: middle; }
+.board tr:last-child th { padding: 4px 0 0; text-align: center; }
+
+/* The evaluation bar (TextBar recipe) is 36 Courier characters with its labels: keep it on
+   one line, a touch smaller on a phone so it still fits a 320px screen. */
+#eval-bar { white-space: nowrap; }
+@media (max-width: 600px) { #eval-bar { font-size: 13px; } }
+
+/* The move list scrolls inside its own box once the game gets long (Table recipe). */
+.moves { max-height: 16em; overflow-y: auto; }

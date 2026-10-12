@@ -1,252 +1,243 @@
 /**
- * Chessboard.js wrapper: drag-drop, highlights, orientation.
+ * The board: a table of square buttons with Unicode pieces (the design
+ * system's Board recipe). Click a piece, then a square, to move.
+ * chess.js validates moves locally; the server stays authoritative.
  */
 var Boudica = window.Boudica || {};
 
 Boudica.Board = (function () {
-    var board = null;
-    var chessGame = null;  // chess.js instance for legal move display
+    var FILES = 'abcdefgh';
+    // U+FE0E after each glyph stops phones drawing the pieces as emoji.
+    var GLYPHS = {
+        w: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
+        b: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
+    };
+    var NAMES = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
+
+    var table = null;
+    var chessGame = null;   // chess.js instance for legal moves and display
+    var serverFen = null;   // last position the server confirmed
     var playerColor = 'white';
     var lastMoveFrom = null;
     var lastMoveTo = null;
     var selectedSquare = null;
     var pendingPromotion = null;
-    var _awaitingServer = false; // true after sending a move, prevents snapback
 
     function init() {
         chessGame = new Chess();
+        serverFen = chessGame.fen();
+        table = document.getElementById('board');
 
-        var config = {
-            draggable: true,
-            position: 'start',
-            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
-            onDragStart: _onDragStart,
-            onDrop: _onDrop,
-            onSnapEnd: _onSnapEnd,
-            onMouseoutSquare: _onMouseoutSquare,
-            onMouseoverSquare: _onMouseoverSquare
-        };
-
-        board = Chessboard('board', config);
-
-        // Make board responsive
-        $(window).on('resize', function () {
-            board.resize();
+        table.addEventListener('click', function (e) {
+            var button = e.target.closest('button[data-square]');
+            if (button) _onSquareClick(button.dataset.square);
         });
 
-        // Click-to-move support
-        $('#board').on('click', '.square-55d63', function () {
-            var sq = $(this).attr('data-square');
-            if (!sq) return;
-            _onSquareClick(sq);
-        });
+        document.getElementById('promotion-dialog')
+            .addEventListener('close', _onPromotionClose);
+
+        _render();
     }
 
-    function setPosition(fen, animate) {
-        if (animate === undefined) animate = true;
-        _awaitingServer = false;
-        if (board) board.position(fen, animate);
+    function setPosition(fen) {
+        serverFen = fen;
         if (chessGame) chessGame.load(fen);
+        selectedSquare = null;
+        _render();
     }
 
     function setOrientation(color) {
         playerColor = color;
-        if (board) board.orientation(color);
+        _render();
     }
 
     function getOrientation() {
         return playerColor;
     }
 
+    function getFen() {
+        return chessGame ? chessGame.fen() : null;
+    }
+
+    function isInCheck() {
+        return chessGame ? chessGame.in_check() : false;
+    }
+
     function highlightLastMove(from, to) {
-        _clearHighlights();
         lastMoveFrom = from;
         lastMoveTo = to;
-        if (from) $('#board .square-' + from).addClass('highlight-last-move');
-        if (to) $('#board .square-' + to).addClass('highlight-last-move');
+        _render();
     }
 
-    function highlightCheck() {
-        if (!chessGame) return;
-        if (chessGame.in_check()) {
-            var board_arr = chessGame.board();
-            for (var r = 0; r < 8; r++) {
-                for (var c = 0; c < 8; c++) {
-                    var piece = board_arr[r][c];
-                    if (piece && piece.type === 'k' && piece.color === chessGame.turn()) {
-                        var file = String.fromCharCode(97 + c);
-                        var rank = String(8 - r);
-                        $('#board .square-' + file + rank).addClass('highlight-check');
-                    }
-                }
-            }
-        }
-    }
+    // Check is said in words (the move's "+" and the status line), not drawn.
+    function highlightCheck() {}
 
     function reset() {
-        if (board) board.start(false);
         if (chessGame) chessGame.reset();
-        _clearHighlights();
+        serverFen = chessGame ? chessGame.fen() : null;
         lastMoveFrom = null;
         lastMoveTo = null;
         selectedSquare = null;
-        _awaitingServer = false;
+        pendingPromotion = null;
+        _render();
     }
 
+    // The server rejected our move: go back to the last position it confirmed.
     function cancelPending() {
-        _awaitingServer = false;
-        if (chessGame && board) board.position(chessGame.fen());
+        if (chessGame && serverFen) chessGame.load(serverFen);
+        selectedSquare = null;
+        _render();
     }
 
     // ---- Private ----
 
-    function _onDragStart(source, piece) {
+    function _canMove() {
         if (Boudica.Game && Boudica.Game.isGameOver()) return false;
         if (Boudica.Game && !Boudica.Game.isPlayerTurn()) return false;
-        if (playerColor === 'white' && piece.search(/^b/) !== -1) return false;
-        if (playerColor === 'black' && piece.search(/^w/) !== -1) return false;
         return true;
     }
 
-    function _onDrop(source, target) {
-        // Check for promotion
-        if (chessGame) {
-            var piece = chessGame.get(source);
-            if (piece && piece.type === 'p') {
-                var targetRank = parseInt(target[1]);
-                if ((piece.color === 'w' && targetRank === 8) ||
-                    (piece.color === 'b' && targetRank === 1)) {
-                    pendingPromotion = { from: source, to: target };
-                    _showPromotionDialog(piece.color);
-                    return 'snapback';
-                }
-            }
-        }
-
-        // Validate with chess.js
-        var move = chessGame ? chessGame.move({
-            from: source,
-            to: target,
-            promotion: 'q'
-        }) : null;
-
-        if (move === null) return 'snapback';
-
-        // Undo the chess.js move (server is authoritative)
-        chessGame.undo();
-
-        // Send move to server
-        _awaitingServer = true;
-        var uci = source + target;
-        if (Boudica.Game) Boudica.Game.sendMove(uci);
-
-        selectedSquare = null;
-        return undefined;
-    }
-
-    function _onSnapEnd() {
-        // Skip snapback when we've sent a move to the server —
-        // the piece is already visually at the target from the drag.
-        if (_awaitingServer) return;
-        if (chessGame) board.position(chessGame.fen());
+    function _isOwnPiece(square) {
+        var p = chessGame.get(square);
+        return !!p && (p.color === 'w' ? 'white' : 'black') === playerColor;
     }
 
     function _onSquareClick(square) {
-        if (Boudica.Game && Boudica.Game.isGameOver()) return;
-        if (Boudica.Game && !Boudica.Game.isPlayerTurn()) return;
+        if (!chessGame || !_canMove()) return;
 
         if (selectedSquare) {
             var from = selectedSquare;
-            var to = square;
+
+            // Clicking the picked-up piece again puts it down; another of
+            // your own pieces picks that one up instead.
+            if (square === from) {
+                selectedSquare = null;
+                _render();
+                return;
+            }
+            if (_isOwnPiece(square)) {
+                selectedSquare = square;
+                _render(square);
+                return;
+            }
+
             selectedSquare = null;
-            _clearSelectionHighlights();
-
-            // Check promotion
-            if (chessGame) {
-                var piece = chessGame.get(from);
-                if (piece && piece.type === 'p') {
-                    var targetRank = parseInt(to[1]);
-                    if ((piece.color === 'w' && targetRank === 8) ||
-                        (piece.color === 'b' && targetRank === 1)) {
-                        var legalMoves = chessGame.moves({ square: from, verbose: true });
-                        var isLegal = legalMoves.some(function(m) { return m.to === to; });
-                        if (isLegal) {
-                            pendingPromotion = { from: from, to: to };
-                            _showPromotionDialog(piece.color);
-                            return;
-                        }
-                    }
-                }
+            var legal = chessGame.moves({ square: from, verbose: true })
+                .some(function (m) { return m.to === square; });
+            if (!legal) {
+                _render();
+                return;
             }
 
-            // Validate
-            var testMove = chessGame ? chessGame.move({ from: from, to: to, promotion: 'q' }) : null;
-            if (testMove) {
-                chessGame.undo();
-                _awaitingServer = true;
-                var uci = from + to;
-                if (Boudica.Game) Boudica.Game.sendMove(uci);
+            var piece = chessGame.get(from);
+            var lastRank = piece.color === 'w' ? '8' : '1';
+            if (piece.type === 'p' && square[1] === lastRank) {
+                pendingPromotion = { from: from, to: square };
+                _render();
+                document.getElementById('promotion-dialog').showModal();
+                return;
             }
-        } else {
-            if (!chessGame) return;
-            var p = chessGame.get(square);
-            if (!p) return;
-            var pColor = p.color === 'w' ? 'white' : 'black';
-            if (pColor !== playerColor) return;
 
+            _play(from, square, '');
+        } else if (_isOwnPiece(square)) {
             selectedSquare = square;
-            $('#board .square-' + square).addClass('highlight-selected');
-
-            var moves = chessGame.moves({ square: square, verbose: true });
-            for (var i = 0; i < moves.length; i++) {
-                $('#board .square-' + moves[i].to).addClass('highlight-legal');
-            }
+            _render(square);
         }
     }
 
-    function _onMouseoverSquare() {}
-    function _onMouseoutSquare() {}
-
-    function _clearHighlights() {
-        $('#board .square-55d63').removeClass(
-            'highlight-last-move highlight-legal highlight-check highlight-selected'
-        );
+    // Show the move straight away, then send it; the server's reply replaces it.
+    function _play(from, to, promotion) {
+        chessGame.move({ from: from, to: to, promotion: promotion || 'q' });
+        lastMoveFrom = from;
+        lastMoveTo = to;
+        _render();
+        if (Boudica.Game) Boudica.Game.sendMove(from + to + promotion);
     }
 
-    function _clearSelectionHighlights() {
-        $('#board .square-55d63').removeClass('highlight-legal highlight-selected');
+    function _onPromotionClose(e) {
+        var choice = e.target.returnValue;
+        var move = pendingPromotion;
+        pendingPromotion = null;
+        if (move && /^[qrbn]$/.test(choice)) {
+            _play(move.from, move.to, choice);
+        }
     }
 
-    function _showPromotionDialog(pieceColor) {
-        var prefix = pieceColor === 'w' ? 'w' : 'b';
-        var pieces = ['Q', 'R', 'B', 'N'];
-        var dialog = document.getElementById('promotion-dialog');
+    function _render(focusSquare) {
+        if (!table || !chessGame) return;
 
-        // Clear existing children safely
-        while (dialog.firstChild) {
-            dialog.removeChild(dialog.firstChild);
+        var dots = {};
+        if (selectedSquare) {
+            chessGame.moves({ square: selectedSquare, verbose: true })
+                .forEach(function (m) { dots[m.to] = true; });
         }
 
-        for (var i = 0; i < pieces.length; i++) {
-            var img = document.createElement('img');
-            img.src = 'img/chesspieces/wikipedia/' + prefix + pieces[i] + '.png';
-            img.alt = pieces[i];
-            img.dataset.piece = pieces[i].toLowerCase();
-            img.addEventListener('click', _onPromotionChoice);
-            dialog.appendChild(img);
+        var ranks = [8, 7, 6, 5, 4, 3, 2, 1];
+        var files = FILES.split('');
+        if (playerColor === 'black') {
+            ranks.reverse();
+            files.reverse();
         }
 
-        document.getElementById('promotion-overlay').classList.add('visible');
+        var rows = [];
+        ranks.forEach(function (rank) {
+            var tr = document.createElement('tr');
+            var th = document.createElement('th');
+            th.scope = 'row';
+            th.textContent = rank;
+            tr.appendChild(th);
+            files.forEach(function (file) {
+                tr.appendChild(_cell(file, rank, dots));
+            });
+            rows.push(tr);
+        });
+
+        var foot = document.createElement('tr');
+        foot.appendChild(document.createElement('th'));
+        files.forEach(function (file) {
+            var th = document.createElement('th');
+            th.scope = 'col';
+            th.textContent = file;
+            foot.appendChild(th);
+        });
+        rows.push(foot);
+
+        table.replaceChildren.apply(table, rows);
+
+        if (focusSquare) {
+            var b = table.querySelector('button[data-square="' + focusSquare + '"]');
+            if (b) b.focus();
+        }
     }
 
-    function _onPromotionChoice(e) {
-        document.getElementById('promotion-overlay').classList.remove('visible');
-        var piece = e.target.dataset.piece;
-        if (pendingPromotion) {
-            var uci = pendingPromotion.from + pendingPromotion.to + piece;
-            pendingPromotion = null;
-            if (Boudica.Game) Boudica.Game.sendMove(uci);
+    function _cell(file, rank, dots) {
+        var square = file + rank;
+        var td = document.createElement('td');
+        if ((FILES.indexOf(file) + rank) % 2 === 1) td.className = 'dark';  // a1 is dark
+        if (square === lastMoveFrom || square === lastMoveTo) td.className = 'last';
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.square = square;
+
+        var piece = chessGame.get(square);
+        var label = square;
+        if (piece) {
+            button.textContent = GLYPHS[piece.color][piece.type] + '︎';
+            label += ' ' + (piece.color === 'w' ? 'white ' : 'black ') + NAMES[piece.type];
+        } else if (dots[square]) {
+            button.textContent = '·';
+            button.className = 'dot';
+            label += ', legal move';
         }
+        if (square === selectedSquare) {
+            button.classList.add('picked');
+            button.setAttribute('aria-pressed', 'true');
+        }
+        button.setAttribute('aria-label', label);
+
+        td.appendChild(button);
+        return td;
     }
 
     return {
@@ -254,6 +245,8 @@ Boudica.Board = (function () {
         setPosition: setPosition,
         setOrientation: setOrientation,
         getOrientation: getOrientation,
+        getFen: getFen,
+        isInCheck: isInCheck,
         highlightLastMove: highlightLastMove,
         highlightCheck: highlightCheck,
         reset: reset,

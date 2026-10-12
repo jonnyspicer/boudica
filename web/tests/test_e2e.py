@@ -22,13 +22,13 @@ def browser_context_args():
 def game_page(page: Page, e2e_server: str):
     """Navigate to the chess app and wait for it to be ready."""
     page.goto(e2e_server)
-    page.wait_for_selector("#board .square-55d63", timeout=10000)
+    page.wait_for_selector("#board button[data-square]", timeout=10000)
     return page
 
 
 def click_square(page: Page, square: str):
-    """Click a board square using dispatch_event (works with chessboard.js)."""
-    page.dispatch_event(f'[data-square="{square}"]', "click")
+    """Click a board square's button."""
+    page.click(f'#board button[data-square="{square}"]')
 
 
 def wait_player_turn(page: Page, timeout: int = 15000):
@@ -44,8 +44,21 @@ def start_game(page: Page, skill: str = "0", time: str = "60000|0", color: str =
     page.select_option("#skill-select", skill)
     page.select_option("#time-select", time)
     page.select_option("#color-select", color)
-    page.click("#btn-new-game")
+    page.click("#new-game-form button[type=submit]")
     expect(page.locator("#btn-resign")).to_be_enabled(timeout=10000)
+
+
+def resign(page: Page):
+    """Resign sits inside a details element: open it, then press the button."""
+    page.click("#resign-details summary")
+    page.click("#btn-resign")
+
+
+# Pieces are buttons holding a chess glyph; legal-move dots have class "dot".
+_COUNT_PIECES_JS = (
+    "[...document.querySelectorAll('#board button[data-square]')]"
+    ".filter(b => b.textContent && !b.classList.contains('dot')).length"
+)
 
 
 def make_move(page: Page, from_sq: str, to_sq: str):
@@ -59,19 +72,18 @@ class TestPageLoads:
     def test_title(self, game_page: Page):
         expect(game_page).to_have_title(re.compile("Chess"))
 
-    def test_navbar_exists(self, game_page: Page):
-        expect(game_page.locator("#main-nav")).to_be_visible()
-        expect(game_page.locator("#main-nav a.active")).to_have_text("Chess")
+    def test_uses_shared_stylesheet(self, game_page: Page):
+        expect(game_page.locator('link[href="https://allinlabs.io/ail.css"]')).to_have_count(1)
 
     def test_board_rendered(self, game_page: Page):
-        squares = game_page.locator("#board .square-55d63")
+        squares = game_page.locator("#board button[data-square]")
         expect(squares).to_have_count(64)
 
     def test_controls_visible(self, game_page: Page):
         expect(game_page.locator("#skill-select")).to_be_visible()
         expect(game_page.locator("#time-select")).to_be_visible()
         expect(game_page.locator("#color-select")).to_be_visible()
-        expect(game_page.locator("#btn-new-game")).to_be_visible()
+        expect(game_page.locator("#new-game-form button[type=submit]")).to_be_visible()
 
     def test_resign_draw_disabled_initially(self, game_page: Page):
         expect(game_page.locator("#btn-resign")).to_be_disabled()
@@ -82,8 +94,7 @@ class TestPageLoads:
         expect(game_page.locator("#bottom-clock")).to_be_visible()
 
     def test_pieces_on_board(self, game_page: Page):
-        pieces = game_page.locator("#board img[data-piece]")
-        expect(pieces).to_have_count(32)
+        assert game_page.evaluate(_COUNT_PIECES_JS) == 32
 
 
 class TestNewGame:
@@ -95,7 +106,7 @@ class TestNewGame:
 
         # White orientation: first square (top-left) is a8
         first_sq = game_page.evaluate(
-            "document.querySelector('#board .square-55d63').dataset.square"
+            "document.querySelector('#board button[data-square]').dataset.square"
         )
         assert first_sq == "a8"
 
@@ -104,7 +115,7 @@ class TestNewGame:
 
         # Black orientation: first square (top-left) is h1
         first_sq = game_page.evaluate(
-            "document.querySelector('#board .square-55d63').dataset.square"
+            "document.querySelector('#board button[data-square]').dataset.square"
         )
         assert first_sq == "h1"
 
@@ -124,7 +135,7 @@ class TestPlayMoves:
 
         # Wait for highlights by polling JS (more reliable than CSS selector timing)
         game_page.wait_for_function(
-            "document.querySelectorAll('#board .highlight-legal').length === 2",
+            "document.querySelectorAll('#board button.dot').length === 2",
             timeout=5000,
         )
 
@@ -178,7 +189,7 @@ class TestPlayMoves:
 
         # After engine moves, there should be 2 highlighted squares (engine's from/to)
         highlighted = game_page.evaluate(
-            "document.querySelectorAll('#board .highlight-last-move').length"
+            "document.querySelectorAll('#board td.last').length"
         )
         assert highlighted == 2
 
@@ -193,23 +204,19 @@ class TestEngineInfo:
         # Wait for engine to finish thinking and respond
         wait_player_turn(game_page)
 
-        # After engine responds, depth info should have been updated
-        depth_text = game_page.locator("#info-depth").text_content()
-        # Depth should be a number (or at least not the initial "-")
-        assert depth_text is not None and depth_text != "-"
+        # After engine responds, the evaluation sentence should give a depth
+        expect(game_page.locator("#eval-words")).to_contain_text("Depth")
 
 
 class TestResignAndDraw:
     def test_resign(self, game_page: Page):
         start_game(game_page)
 
-        game_page.on("dialog", lambda dialog: dialog.accept())
-        game_page.click("#btn-resign")
+        resign(game_page)
 
         status = game_page.locator("#game-status")
-        expect(status).to_have_class(re.compile("visible"), timeout=10000)
-        expect(status).to_contain_text("Boudica wins")
-        expect(status).to_contain_text("Resignation")
+        expect(status).to_contain_text("Boudica wins", timeout=10000)
+        expect(status).to_contain_text("you resigned")
 
         expect(game_page.locator("#btn-resign")).to_be_disabled()
         expect(game_page.locator("#btn-draw")).to_be_disabled()
@@ -218,10 +225,10 @@ class TestResignAndDraw:
         start_game(game_page)
 
         game_page.click("#btn-draw")
-        game_page.wait_for_timeout(1000)
 
         status = game_page.locator("#game-status")
-        expect(status).not_to_have_class(re.compile("visible"))
+        expect(status).to_contain_text("Boudica declined the draw.", timeout=10000)
+        assert not game_page.evaluate("window.Boudica.Game.isGameOver()")
 
 
 class TestClocks:
@@ -265,12 +272,10 @@ class TestFullGame:
         assert rows.count() >= 3
 
         # Resign
-        game_page.on("dialog", lambda d: d.accept())
-        game_page.click("#btn-resign")
+        resign(game_page)
 
         status = game_page.locator("#game-status")
-        expect(status).to_have_class(re.compile("visible"), timeout=10000)
-        expect(status).to_contain_text("Boudica wins")
+        expect(status).to_contain_text("Boudica wins", timeout=10000)
 
     def test_play_as_black(self, game_page: Page):
         start_game(game_page, color="black")
@@ -310,16 +315,15 @@ class TestFullGame:
         game_page.wait_for_timeout(500)
 
         # Board should be reset - 32 pieces again
-        pieces = game_page.locator("#board img[data-piece]")
-        expect(pieces).to_have_count(32)
+        assert game_page.evaluate(_COUNT_PIECES_JS) == 32
 
         # Move history should be cleared
         rows = game_page.locator("#move-table tbody tr")
         assert rows.count() == 0
 
-        # Game status should be hidden
-        status = game_page.locator("#game-status")
-        expect(status).not_to_have_class(re.compile("visible"))
+        # No result from the previous game should be showing
+        assert not game_page.evaluate("window.Boudica.Game.isGameOver()")
+        expect(game_page.locator("#game-status")).not_to_contain_text("wins")
 
 
 # ---------------------------------------------------------------------------
@@ -441,9 +445,7 @@ def play_to_completion(page: Page, max_moves: int = 200) -> dict:
 
     # Collect result
     result_text = page.locator("#game-status").text_content() or ""
-    status_visible = page.evaluate(
-        "document.getElementById('game-status').classList.contains('visible')"
-    )
+    status_visible = page.evaluate("window.Boudica.Game.isGameOver()")
     move_rows = page.locator("#move-table tbody tr").count()
 
     return {
@@ -551,10 +553,8 @@ class TestCompleteGame:
             )
             assert r["total_moves"] >= 2, f"Game {i+1} too short"
 
-        # Verify the final game reset properly -- status is visible (last game ended)
-        expect(game_page.locator("#game-status")).to_have_class(
-            re.compile("visible")
-        )
+        # The last game ended, so its result is showing
+        assert game_page.evaluate("window.Boudica.Game.isGameOver()")
 
     def test_game_ui_integrity_after_completion(self, game_page: Page):
         """After a complete game, verify all UI elements are in correct state."""
@@ -568,23 +568,19 @@ class TestCompleteGame:
         expect(game_page.locator("#btn-resign")).to_be_disabled()
         expect(game_page.locator("#btn-draw")).to_be_disabled()
 
-        # Game status should be visible with win/loss/draw class
-        status = game_page.locator("#game-status")
-        expect(status).to_have_class(re.compile("visible"))
-        status_class = status.get_attribute("class")
-        assert any(c in status_class for c in ["win", "loss", "draw"]), (
-            f"Expected win/loss/draw class, got: {status_class}"
+        # Game status should state the result in words
+        expect(game_page.locator("#game-status")).to_contain_text(
+            re.compile("You win|Boudica wins|Draw")
         )
 
         # Move table should have entries
         assert game_page.locator("#move-table tbody tr").count() >= 2
 
         # Board should still show pieces (not 0)
-        pieces = game_page.locator("#board img[data-piece]")
-        assert pieces.count() > 0
+        assert game_page.evaluate(_COUNT_PIECES_JS) > 0
 
-        # Clocks should have stopped (no active-clock class)
-        # This is implicit -- just verify they display something
+        # Clocks have stopped, so neither is highlighted
+        assert game_page.locator("#top-clock mark, #bottom-clock mark").count() == 0
         top_clock = game_page.locator("#top-clock").text_content()
         assert top_clock is not None and len(top_clock) > 0
 
@@ -594,6 +590,4 @@ class TestCompleteGame:
 
         expect(game_page.locator("#btn-resign")).to_be_enabled()
         assert game_page.locator("#move-table tbody tr").count() == 0
-        expect(game_page.locator("#game-status")).not_to_have_class(
-            re.compile("visible")
-        )
+        assert not game_page.evaluate("window.Boudica.Game.isGameOver()")

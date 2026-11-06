@@ -183,7 +183,7 @@ private:
     // Debug commands
     void cmdDisplay();
     void cmdPerft(std::istringstream& is);
-    void cmdBench();
+    void cmdBench(std::istringstream& is);
 
     // Helper methods
     void initOptions();

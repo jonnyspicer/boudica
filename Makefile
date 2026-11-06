@@ -117,11 +117,11 @@ clean:
 	@rm -f $(TARGET) $(TUNER_TARGET)
 	@echo "Clean complete"
 
-# Run perft tests (placeholder)
+# Run perft regression suite, then bench (prints the build's node signature)
 test: $(TARGET)
 	@echo "Running perft tests..."
-	@echo "TODO: Implement perft test runner"
-	@echo "Example: ./$(TARGET) bench"
+	@bash tests/perft.sh ./$(TARGET)
+	@./$(TARGET) bench | tail -3
 
 # Help target
 help:

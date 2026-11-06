@@ -21,6 +21,8 @@ MoveOrderingTables move_ordering;
 SearchInfo search_info;
 TimeManager time_manager;
 int skill_level = 20;
+bool own_book = false;  // Off by default: rating lists require engine books disabled
+int move_overhead = 30;
 
 // LMR reduction table
 int LMR_TABLE[MAX_PLY][MAX_MOVES];
@@ -46,17 +48,31 @@ void init_lmr_table() {
 // ============================================================================
 // Time Manager Implementation
 // ============================================================================
+
+// Clock time the search may plan with, after reserving move_overhead for the
+// delay between the GUI starting our clock and receiving "bestmove".
+// Like Stockfish, the overhead is reserved for every move still to be played
+// before the next time control (capped at 50), plus two moves of slack, so
+// latency can't accumulate into a time loss. The result must stay >= 1.
+static int usable_clock_time(int time_left, int moves_to_go) {
+    int mtg = std::min(moves_to_go, 50);
+    int reserved = move_overhead * (2 + mtg);
+    return std::max(1, time_left - reserved);
+}
+
 void TimeManager::init(const SearchLimits& limits, Color us) {
     start_time = Clock::now();
     last_check = 0;
 
     if (limits.movetime > 0) {
         // Fixed time per move - use 90% of allocated for safety margin
-        allocated_time = limits.movetime * 9 / 10;
-        max_time = limits.movetime;
+        int movetime = std::max(1, limits.movetime - move_overhead);
+        allocated_time = movetime * 9 / 10;
+        max_time = movetime;
     } else if (limits.time[us] > 0) {
         // Time control: allocate time/moves_to_go + most of increment
-        int time_left = limits.time[us];
+        int moves_to_go_hint = limits.movestogo > 0 ? limits.movestogo : 30;
+        int time_left = usable_clock_time(limits.time[us], moves_to_go_hint);
         int increment = limits.inc[us];
         int moves_to_go = limits.movestogo > 0 ? limits.movestogo : 30;
 
@@ -993,8 +1009,8 @@ Move iterative_deepening(Position& pos, SearchLimits& limits) {
     // This preserves learned patterns from previous searches
     move_ordering.age();
 
-    // Probe opening book first
-    Move book_move = Book::probe(pos);
+    // Probe opening book first (only when enabled via the OwnBook option)
+    Move book_move = own_book ? Book::probe(pos) : MOVE_NONE;
     if (book_move != MOVE_NONE) {
         search_info.score = VALUE_DRAW;
         search_info.pv_length = 1;

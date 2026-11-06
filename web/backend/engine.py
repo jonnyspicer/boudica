@@ -50,6 +50,8 @@ class UCIEngine:
         skill_level = max(0, min(20, int(skill_level)))
         await self._send(f"setoption name Hash value {hash_mb}")
         await self._send(f"setoption name Skill Level value {skill_level}")
+        # The engine defaults OwnBook off for rating-list testing; the site keeps it on
+        await self._send("setoption name OwnBook value true")
         await self._send("isready")
         await self._read_until("readyok")
 

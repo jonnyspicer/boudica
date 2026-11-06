@@ -4,6 +4,7 @@
 #include "tt.h"
 #include "movegen.h"
 #include "book.h"
+#include "bench.h"
 
 #include <iostream>
 #include <sstream>
@@ -52,6 +53,12 @@ void Handler::initOptions() {
 
     // Clear Hash button
     options.emplace_back("Clear Hash", OPT_BUTTON);
+
+    // Built-in opening book (off by default; rating lists require it disabled)
+    options.emplace_back("OwnBook", false);
+
+    // Time in ms reserved per move for GUI/communication latency
+    options.emplace_back("Move Overhead", 30, 0, 5000);
 }
 
 // ============================================================================
@@ -83,7 +90,7 @@ void Handler::loop() {
         // Debug commands
         else if (token == "d" || token == "display") cmdDisplay();
         else if (token == "perft")       cmdPerft(is);
-        else if (token == "bench")       cmdBench();
+        else if (token == "bench")       cmdBench(is);
         // Ignore unknown commands silently (UCI protocol requirement)
     }
 }
@@ -103,7 +110,7 @@ void Handler::processCommand(const std::string& command) {
     else if (token == "setoption")   cmdSetOption(is);
     else if (token == "d")           cmdDisplay();
     else if (token == "perft")       cmdPerft(is);
-    else if (token == "bench")       cmdBench();
+    else if (token == "bench")       cmdBench(is);
 }
 
 // ============================================================================
@@ -410,9 +417,16 @@ void Handler::cmdSetOption(std::istringstream& is) {
         else if (name == "Skill Level") {
             Boudica::skill_level = val;
         }
+        else if (name == "Move Overhead") {
+            Boudica::move_overhead = val;
+        }
     }
     else if (opt->type == OPT_CHECK) {
         opt->currentValue = (value == "true") ? "true" : "false";
+
+        if (name == "OwnBook") {
+            Boudica::own_book = opt->boolValue();
+        }
     }
     else {
         opt->currentValue = value;
@@ -482,8 +496,17 @@ void Handler::cmdPerft(std::istringstream& is) {
     if (ms > 0) std::cout << "NPS: " << (total * 1000 / ms) << std::endl;
 }
 
-void Handler::cmdBench() {
-    std::cout << "Benchmark not yet implemented" << std::endl;
+void Handler::cmdBench(std::istringstream& is) {
+    int depth = Boudica::BENCH_DEFAULT_DEPTH;
+    is >> depth;
+
+    cmdStop();
+    Boudica::bench(depth);
+
+    // bench uses its own 16 MB table; put back the configured size and
+    // leave the engine ready for a new game
+    transpositionTable.resize(static_cast<size_t>(getOptionInt("Hash")));
+    cmdUCINewGame();
 }
 
 // ============================================================================

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <cstdlib>
 
 #include "types.h"
 #include "bitboard.h"
@@ -9,6 +10,7 @@
 #include "evaluate.h"
 #include "uci.h"
 #include "book.h"
+#include "bench.h"
 
 // ============================================================================
 // Boudica Chess Engine - Main Entry Point
@@ -63,10 +65,9 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[1];
 
         if (arg == "bench" || arg == "--bench") {
-            // Run benchmark for testing/profiling
-            std::cout << "Benchmark not yet implemented" << std::endl;
-            // TODO: Implement benchmark with standard positions
-            // bench();
+            // Run benchmark for testing/profiling: "boudica bench [depth]"
+            int depth = argc > 2 ? std::atoi(argv[2]) : Boudica::BENCH_DEFAULT_DEPTH;
+            Boudica::bench(depth > 0 ? depth : Boudica::BENCH_DEFAULT_DEPTH);
             return 0;
         }
         else if (arg == "version" || arg == "--version" || arg == "-v") {

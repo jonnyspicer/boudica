@@ -234,6 +234,8 @@ extern std::atomic<bool> stop_search;  // Set by UCI "stop" command
 extern MoveOrderingTables move_ordering;
 extern SearchInfo search_info;
 extern int skill_level;  // 0-20, limits search depth (20 = no limit)
+extern bool own_book;    // Probe the built-in opening book before searching
+extern int move_overhead;  // ms reserved per move for GUI/communication latency
 
 // ============================================================================
 // Main Search Functions

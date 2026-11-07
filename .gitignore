@@ -1,0 +1,4 @@
+tests/strength/ec2/state.env
+tests/strength/results/
+/boudica
+/build/

@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# Launch one EC2 spot instance for a gauntlet run. Costs money while it exists:
+# Launch one EC2 instance for a gauntlet run. Costs money while it exists:
 # run teardown.sh when the gauntlet is done.
 #
-# The spot request is persistent with interruption behaviour "stop", so if AWS
-# reclaims capacity the instance (and its disk) is stopped rather than deleted,
-# and comes back when capacity returns; resume fastchess from its config.json.
+# MARKET=spot (default): the spot request is persistent with interruption
+# behaviour "stop", so if AWS reclaims capacity the instance (and its disk) is
+# stopped rather than deleted, and comes back when capacity returns;
+# ec2/resume-gauntlet.sh restarts fastchess from its config.json.
+# MARKET=ondemand: about 3x the price but never interrupted. Use it when spot
+# capacity is short (three interruptions in eight hours on 2026-11-07).
 #
 # Usage: tests/strength/ec2/launch.sh
-# Env:   REGION (us-east-1), INSTANCE_TYPE (c7a.4xlarge), MAX_PRICE (0.40 USD/h),
+# Env:   MARKET (spot|ondemand), REGION (us-east-1), INSTANCE_TYPE (c7a.4xlarge), MAX_PRICE (0.40 USD/h),
 #        MAX_HOURS (72, the instance shuts itself down after this), PUBKEY (~/.ssh/id_ed25519.pub)
 set -euo pipefail
 
+MARKET="${MARKET:-spot}"
 REGION="${REGION:-us-east-1}"
 INSTANCE_TYPE="${INSTANCE_TYPE:-c7a.4xlarge}"
 MAX_PRICE="${MAX_PRICE:-0.40}"
@@ -42,12 +46,43 @@ my_ip=$(curl -s https://checkip.amazonaws.com)
 aws ec2 authorize-security-group-ingress --group-id "$sg" \
     --protocol tcp --port 22 --cidr "$my_ip/32" >/dev/null 2>&1 || true
 
-user_data=$(printf '#!/bin/bash\nshutdown -h +%d\n' $(( MAX_HOURS * 60 )))
+# User data runs on first boot only, but a spot interruption stops and restarts
+# the instance, which clears a scheduled shutdown. So install a service that
+# re-arms the shutdown on every boot against a fixed deadline.
+read -r -d '' user_data <<'EOF' || true
+#!/bin/bash
+echo $(( $(date +%s) + @MAX_HOURS@ * 3600 )) > /etc/deadline-epoch
+cat > /usr/local/sbin/deadline-shutdown <<'SCRIPT'
+#!/bin/bash
+left=$(( ($(cat /etc/deadline-epoch) - $(date +%s)) / 60 ))
+if (( left <= 0 )); then shutdown -h now; else shutdown -h +$left; fi
+SCRIPT
+chmod +x /usr/local/sbin/deadline-shutdown
+cat > /etc/systemd/system/deadline-shutdown.service <<'UNIT'
+[Unit]
+Description=Shut down when the gauntlet time limit is reached
+After=multi-user.target
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/deadline-shutdown
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl enable --now deadline-shutdown.service
+EOF
+user_data="${user_data//@MAX_HOURS@/$MAX_HOURS}"
+
+market=()
+case "$MARKET" in
+    spot) market=(--instance-market-options "MarketType=spot,SpotOptions={MaxPrice=$MAX_PRICE,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}") ;;
+    ondemand) ;;
+    *) echo "MARKET must be spot or ondemand" >&2; exit 2 ;;
+esac
 
 instance=$(aws ec2 run-instances \
     --image-id "$ami" --instance-type "$INSTANCE_TYPE" \
     --key-name "$NAME" --security-group-ids "$sg" \
-    --instance-market-options "MarketType=spot,SpotOptions={MaxPrice=$MAX_PRICE,SpotInstanceType=persistent,InstanceInterruptionBehavior=stop}" \
+    ${market[@]+"${market[@]}"} \
     --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=30,VolumeType=gp3,DeleteOnTermination=true}' \
     --user-data "$user_data" \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$NAME}]" \

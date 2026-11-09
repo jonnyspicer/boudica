@@ -12,8 +12,9 @@ set -euo pipefail
 CHESS_DIR="${CHESS_DIR:-/opt/chess}"
 FASTCHESS_TAG="v1.8.2-alpha"
 SF10_TAG="sf_10"
+RUST_VERSION="1.91"
 BOOKS_URL="https://github.com/official-stockfish/books/raw/master"
-SYZYGY_URL="https://tablebase.lichess.ovh/tables/standard/3-4-5/"
+SYZYGY_URL="https://tablebase.lichess.ovh/tables/standard"
 
 WITH_TB=0; WITH_SF10=0; WITH_RUST=0
 for arg in "$@"; do
@@ -34,7 +35,10 @@ cd "$CHESS_DIR/src"
 : > "$CHESS_DIR/versions.txt"
 
 if [[ $WITH_RUST -eq 1 ]]; then
-    apt-get install -y -qq cargo >/dev/null
+    # Ubuntu's default cargo (1.75) is too old: anchors without a Cargo.lock pull
+    # current crates that need edition 2024 (Rust >= 1.85). Use a versioned package.
+    apt-get install -y -qq "cargo-$RUST_VERSION" >/dev/null
+    ln -sf "/usr/lib/rust-$RUST_VERSION/bin/cargo" "/usr/lib/rust-$RUST_VERSION/bin/rustc" /usr/local/bin/
     echo "$(cargo --version)" >> "$CHESS_DIR/versions.txt"
 fi
 
@@ -76,7 +80,9 @@ fi
 
 if [[ $WITH_TB -eq 1 ]]; then
     cd "$CHESS_DIR/syzygy"
-    wget -q -r -np -nd -nc -A '*.rtbw,*.rtbz' "$SYZYGY_URL"
+    # robots.txt blocks recursive wget on /tables, so use Lichess's published URL list
+    wget -q -O - "$SYZYGY_URL/download.txt" | grep -E '/3-4-5-(wdl|dtz)/.*\.rtb[wz]$' \
+        | wget -q -nc -i -
     count=$(ls -1 *.rtb? | wc -l)
     echo "syzygy 3-4-5 files=$count" >> "$CHESS_DIR/versions.txt"
     # The full 3-4-5 piece set is 290 files (145 WDL + 145 DTZ)

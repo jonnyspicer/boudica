@@ -117,8 +117,11 @@ clean:
 	@rm -f $(TARGET) $(TUNER_TARGET)
 	@echo "Clean complete"
 
-# Run perft regression suite, then bench (prints the build's node signature)
+# Run the TT test and perft regression suite, then bench (prints the build's node signature)
 test: $(TARGET)
+	@echo "Running transposition table test..."
+	@$(CXX) $(CXXSTD) -O1 -I$(SRC_DIR) tests/tt_test.cpp $(SRC_DIR)/tt.cpp -o $(BUILD_DIR)/tt_test
+	@$(BUILD_DIR)/tt_test
 	@echo "Running perft tests..."
 	@bash tests/perft.sh ./$(TARGET)
 	@./$(TARGET) bench | tail -3
@@ -135,7 +138,7 @@ help:
 	@echo "  tuner   - Build the Texel tuning tool"
 	@echo "  tune    - Run tuner with default settings"
 	@echo "  clean   - Remove build artifacts"
-	@echo "  test    - Run perft tests"
+	@echo "  test    - Run TT and perft tests, then bench"
 	@echo "  help    - Show this help message"
 	@echo ""
 	@echo "Tuner Usage:"

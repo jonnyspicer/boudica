@@ -13,7 +13,8 @@
 
 // TTEntry: 10 bytes packed for cache efficiency
 // Layout:
-//   key16    (2 bytes) - upper 16 bits of hash for verification
+//   key16    (2 bytes) - low 16 bits of hash for verification (the bucket
+//                       index uses the high bits, so these must not overlap)
 //   move     (2 bytes) - best move found
 //   value    (2 bytes) - search score
 //   staticEval (2 bytes) - static evaluation
@@ -29,7 +30,7 @@ struct TTEntry {
     Bound bound()      const { return Bound(genBound8 & 0x3); }
 
     // Check if this entry matches the given key
-    bool key_matches(Key k) const { return key16 == uint16_t(k >> 48); }
+    bool key_matches(Key k) const { return key16 == uint16_t(k); }
 
     // Get the generation (age) of this entry
     uint8_t generation() const { return genBound8 >> 2; }
@@ -38,17 +39,17 @@ struct TTEntry {
     void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t gen) {
 
         // Preserve move if we don't have a new one
-        if (m || key16 != uint16_t(k >> 48))
+        if (m || key16 != uint16_t(k))
             move16 = uint16_t(m);
 
         // Don't overwrite entries from deeper searches with same position
         // unless the new entry is exact or from a new generation
         if (b == BOUND_EXACT
-            || key16 != uint16_t(k >> 48)
+            || key16 != uint16_t(k)
             || d + 4 > depth8
             || gen != generation()) {
 
-            key16       = uint16_t(k >> 48);
+            key16       = uint16_t(k);
             value16     = int16_t(v);
             staticEval16 = int16_t(ev);
             depth8      = uint8_t(d - DEPTH_NONE);

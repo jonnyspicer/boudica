@@ -92,7 +92,7 @@ void TranspositionTable::clear() {
 TTEntry* TranspositionTable::probe(Key key, bool& found) const {
 
     TTEntry* const tte = first_entry(key);
-    const uint16_t key16 = uint16_t(key >> 48);
+    const uint16_t key16 = uint16_t(key);
 
     // Search all entries in the cluster
     for (int i = 0; i < ClusterSize; ++i) {
@@ -133,7 +133,7 @@ void TranspositionTable::store(Key key, Value value, Bound bound, Depth depth,
 
     TTEntry* const tte = first_entry(key);
     TTEntry* replace = tte;
-    const uint16_t key16 = uint16_t(key >> 48);
+    const uint16_t key16 = uint16_t(key);
 
     // Search for matching position or find replacement slot
     for (int i = 0; i < ClusterSize; ++i) {

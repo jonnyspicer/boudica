@@ -9,12 +9,13 @@
 # config is debug/ASan and links gtest; needs a hand-patched build before it can be used. Builds untested.
 # Batch 2 (2026-11-06): mora11, smallbrain, fatalii05/06, tantabus = official repos at exact tags. fatalii has no
 # Cargo.lock at its tags, so its dependencies resolve to current versions (may differ slightly from the rated binary).
+# smallbrain 1.1.0's types.h uses uint8_t without <cstdint>; GCC 13 needs the include added (no behaviour change).
 # Rung A blitz gauntlet uses: vice, mora11, smallbrain, fatalii05, sungorus, tantabus, fatalii06 (rated on both lists).
 vice	A	Vice 1.0 64-bit	1997	1977	https://github.com/maksimKorzh/chess_programming.git	1c9696c9459d	cd didactic_engines/Vice10/Vice10/Source && gcc -O3 xboard.c vice.c uci.c evaluate.c pvtable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c misc.c -o vice	didactic_engines/Vice10/Vice10/Source/vice	-
 stellar	A	Stellar 1.4.3 64-bit	2100	-	https://github.com/DimitrijeDobrota/stellar.git	8a21b456bb5189594052f3038c5b2871c87abe35	cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j	build/bin/engine	-
 mora11	A	MORA 1.1.0	2136	2188	https://github.com/gonzaloarro/MORA-CHESS-ENGINE.git	v1.1.0	cd Linux/src && g++ -std=c++11 -O3 -pthread *.cpp -o MORA	Linux/src/MORA	-
 mora100	A	MORA 1.0.0	2149	-	https://github.com/gonzaloarro/MORA-CHESS-ENGINE.git	v1.0.0	cd Linux/src && g++ -std=c++11 -O3 -pthread *.cpp -o MORA	Linux/src/MORA	-
-smallbrain	A	Smallbrain 1.1 64-bit	2177	2114	https://github.com/Disservin/Smallbrain.git	1.1.0	make -C src	src/smallbrain	-
+smallbrain	A	Smallbrain 1.1 64-bit	2177	2114	https://github.com/Disservin/Smallbrain.git	1.1.0	grep -q cstdint src/types.h || sed -i '1a #include <cstdint>' src/types.h; make -C src	src/smallbrain	-
 weini	A	Weini 0.0.23 64-bit	2197	-	TBD	TBD	TBD	TBD	-
 fatalii05	A	Fatalii 0.5.0 64-bit	2263	2207	https://github.com/FitzOReilly/fatalii.git	v0.5.0	cargo build --profile release-lto --bin fatalii	target/release-lto/fatalii	-
 sungorus	A	Sungorus 1.4 64-bit	2269	2241	https://github.com/rwbc/Sungorus-1.4.git	5df8bf8f	gcc -O3 src/*.c -o sungorus -lm	sungorus	-

@@ -2,7 +2,8 @@
 # Tier 2/3 gauntlet: Boudica against one rung of CCRL-rated anchors, then an
 # Ordo rating with every anchor fixed at its CCRL rating.
 #
-# Usage: tests/strength/gauntlet.sh BOUDICA_BINARY RUNG (blitz|4040) [games_per_anchor=300]
+# Usage: tests/strength/gauntlet.sh BOUDICA_BINARY RUNG LIST(blitz|4040) [games_per_anchor=300]
+# Env:   SKIP="id ..." leaves those anchors out (e.g. one that crashes)
 # Needs: setup-tools.sh --with-tb --with-sf10, scale.sh, build-anchors.sh RUNG
 set -euo pipefail
 
@@ -12,6 +13,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 CONCURRENCY="${CONCURRENCY:-$(( $(nproc) > 1 ? $(nproc) - 1 : 1 ))}"
 OUT="${OUT:-$CHESS_DIR/results/gauntlet-$LIST-$RUNG-$(date -u +%Y%m%dT%H%M%S)}"
 mkdir -p "$OUT"
+# Record the run so ec2/resume-gauntlet.sh can restart it after a spot interruption.
+# Re-running with the same OUT resumes from fastchess's saved state.
+printf 'SKIP=%q OUT=%q %q %q %q %q %q\n' "${SKIP:-}" "$OUT" "$0" "$BOUDICA" "$RUNG" "$LIST" "$PER_ANCHOR" \
+    > "$CHESS_DIR/results/active"
 
 source "$CHESS_DIR/scale.env"
 case "$LIST" in
@@ -26,6 +31,7 @@ engines=()
 while IFS=$'\t' read -r -a f; do
     id="${f[0]}"; rating="${f[$((col - 1))]}"
     [[ "${f[1]}" == "$RUNG" && "$rating" != "-" && -x "$CHESS_DIR/anchors/$id" ]] || continue
+    [[ " ${SKIP:-} " != *" $id "* ]] || continue
     engine=(-engine cmd="$CHESS_DIR/anchors/$id" name="$id")
     opts="${f[9]:--}"
     if [[ "$opts" != "-" ]]; then
@@ -47,6 +53,11 @@ cat "$OUT/header.txt"
 
 # CCRL conditions: same hash for all, ponder off, engine books off, 3-4-5 TB
 # for every engine that supports them. Boudica first so it is the gauntlet seed.
+# State is saved after every game so the PGN never holds games a resume would replay.
+if [[ -f "$OUT/config.json" ]]; then
+    echo "Resuming from $OUT/config.json"
+    "$CHESS_DIR/bin/fastchess" -config file="$OUT/config.json" | tee -a "$OUT/fastchess.log"
+else
 "$CHESS_DIR/bin/fastchess" \
     -tournament gauntlet -seeds 1 \
     -engine cmd="$BOUDICA" name=boudica option.OwnBook=false \
@@ -58,11 +69,13 @@ cat "$OUT/header.txt"
     -draw movenumber=40 movecount=8 score=10 \
     -resign movecount=3 score=1000 twosided=true \
     -report penta=true \
-    -config outname="$OUT/config.json" \
+    -config outname="$OUT/config.json" -autosaveinterval 1 \
     -pgnout file="$OUT/games.pgn" \
     | tee "$OUT/fastchess.log"
+fi
 
 "$CHESS_DIR/bin/ordo" -p "$OUT/games.pgn" -m "$OUT/anchors.csv" -W -D -s 1000 \
     -o "$OUT/ratings.txt" -j "$OUT/h2h.txt"
 cat "$OUT/ratings.txt"
-echo "Results in $OUT. Resume an interrupted run with: fastchess -config file=$OUT/config.json"
+rm -f "$CHESS_DIR/results/active"
+echo "Results in $OUT"

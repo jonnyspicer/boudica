@@ -741,7 +741,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         // Extra time check at each move in the loop for safety
         if (time_manager.should_stop(search_info.nodes)) {
             stop_search = true;
-            break;
+            return VALUE_ZERO;
         }
 
         Move m = pick_next_move(scored_moves, move_count, i);

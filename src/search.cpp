@@ -331,6 +331,12 @@ std::string pv_to_string(const Move* pv, int length) {
 // ============================================================================
 // Quiescence Search
 // ============================================================================
+// Static eval adjusted by the pawn-structure correction history, kept out of mate range
+static Value corrected_eval(const Position& pos, Value raw) {
+    int v = raw + move_ordering.eval_correction(pos.side_to_move(), pos.pawn_key());
+    return Value(std::clamp(v, -int(VALUE_KNOWN_WIN) + 1, int(VALUE_KNOWN_WIN) - 1));
+}
+
 Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
     // Initialize PV for this node (prevent stale PV data)
     ss->pv_length = 0;
@@ -378,7 +384,7 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
 
     if (!in_check) {
         // Stand pat: use static evaluation as a lower bound
-        best_value = Eval::evaluate(pos);
+        best_value = corrected_eval(pos, Eval::evaluate(pos));
 
         if (best_value >= beta) {
             return best_value;  // Fail high (stand pat is good enough)
@@ -601,11 +607,12 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     // ========================================================================
     // Static Evaluation
     // ========================================================================
-    Value static_eval;
+    Value static_eval, raw_eval;
     if (in_check) {
-        static_eval = VALUE_NONE;
+        static_eval = raw_eval = VALUE_NONE;
     } else {
-        static_eval = Eval::evaluate(pos);
+        raw_eval = Eval::evaluate(pos);
+        static_eval = corrected_eval(pos, raw_eval);
     }
     ss->static_eval = static_eval;
 
@@ -1017,7 +1024,16 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         bound = BOUND_EXACT;
     }
 
-    TT.store(pos_key, value_to_tt(best_value, ss->ply), bound, Depth(depth), best_move, static_eval);
+    // Learn the eval error for this pawn structure from quiet, trustworthy results
+    if (!in_check && !ss->excluded_move && std::abs(best_value) < VALUE_KNOWN_WIN
+        && (!best_move || !pos.capture(best_move))
+        && !(bound == BOUND_LOWER && best_value <= static_eval)
+        && !(bound == BOUND_UPPER && best_value >= static_eval)) {
+        move_ordering.update_correction(pos.side_to_move(), pos.pawn_key(), depth,
+                                        int(best_value - raw_eval));
+    }
+
+    TT.store(pos_key, value_to_tt(best_value, ss->ply), bound, Depth(depth), best_move, raw_eval);
 
     return best_value;
 }

@@ -903,6 +903,19 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                 reduction += 1;
             }
 
+            // Reduce less where the result matters most or the move is forcing,
+            // more where the position is getting worse
+            if (pv_node) reduction -= 1;
+            if (gives_check) reduction -= 1;
+            if (!improving) reduction += 1;
+
+            // Reduce less for moves with good history, more for bad history
+            Piece mp = pos.piece_on(from_sq(m));
+            int hist = move_ordering.get_history(pos.side_to_move(), m)
+                     + move_ordering.get_continuation_history(
+                           (ss - 1)->moved_piece, (ss - 1)->to_square, mp, to_sq(m));
+            reduction -= hist / 10000;
+
             // Clamp: don't reduce below 0 or beyond new_depth - 1
             reduction = std::max(0, reduction);
             reduction = std::min(reduction, new_depth - 1);

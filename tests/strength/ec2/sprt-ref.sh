@@ -33,6 +33,13 @@ build() {  # ref -> prints the binary path
     echo "$dir/boudica"
 }
 
+# A branch that is behind BASE_REF would be compared against changes it does not
+# have, so test it against the commit it branched from instead.
+if ! git -C "$SRC" merge-base --is-ancestor "$BASE_REF" "$DEV_REF"; then
+    BASE_REF=$(git -C "$SRC" merge-base "$BASE_REF" "$DEV_REF")
+    echo "$DEV_REF is behind; testing against its merge-base $BASE_REF"
+fi
+
 dev=$(build "$DEV_REF"); base=$(build "$BASE_REF")
 name() { basename "$1" | tr '/' '-'; }
 refs=$(printf 'dev_ref=%s dev=%s\nbase_ref=%s base=%s\n' \

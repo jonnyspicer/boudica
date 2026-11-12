@@ -179,7 +179,7 @@ int TranspositionTable::hashfull() const {
         for (int j = 0; j < ClusterSize; ++j) {
             // Count entries from the current generation
             if (table[i].entry[j].depth8 &&
-                (table[i].entry[j].genBound8 >> 2) == (generation8 >> 2)) {
+                table[i].entry[j].generation() == generation8) {
                 ++count;
             }
         }

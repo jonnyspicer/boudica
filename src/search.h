@@ -4,6 +4,7 @@
 #include "types.h"
 #include <algorithm>
 #include <atomic>
+#include <algorithm>
 #include <chrono>
 #include <vector>
 #include <cstring>
@@ -240,6 +241,11 @@ public:
 
     void set_start_time() { start_time = Clock::now(); }
     uint64_t get_allocated_time() const { return allocated_time; }
+    // Up to 3x the soft target, never past 90% of the per-move maximum
+    uint64_t hard_limit() const {
+        if (allocated_time == UINT64_MAX) return UINT64_MAX;
+        return std::min(allocated_time * 3, max_time * 9 / 10);
+    }
 
 private:
     TimePoint start_time;

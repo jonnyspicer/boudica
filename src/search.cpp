@@ -111,18 +111,10 @@ bool TimeManager::should_stop(uint64_t nodes) const {
     }
     last_check = nodes;
 
-    // Stop if we've used our allocated time
-    uint64_t elapsed_time = elapsed();
-    if (elapsed_time >= allocated_time) {
-        return true;
-    }
-
-    // Also stop if we're close to max_time (hard limit safety)
-    if (elapsed_time >= max_time * 9 / 10) {
-        return true;
-    }
-
-    return false;
+    // allocated_time is the soft target, checked between iterations. Inside
+    // the search only the hard limit applies, so an iteration started in time
+    // can usually finish instead of being thrown away.
+    return elapsed() >= hard_limit();
 }
 
 uint64_t TimeManager::elapsed() const {
@@ -1102,16 +1094,6 @@ Move iterative_deepening(Position& pos, SearchLimits& limits) {
     // Iterative Deepening Loop
     // ========================================================================
     for (int depth = 1; depth <= max_depth; ++depth) {
-        // Time check before starting new depth
-        if (!limits.infinite && !limits.depth && depth > 1) {
-            uint64_t elapsed = time_manager.elapsed();
-            uint64_t allocated = time_manager.get_allocated_time();
-            // Don't start new depth if we've used more than 50% of allocated time
-            // (the next depth likely takes 2-3x the current depth)
-            if (elapsed > allocated / 2) {
-                break;
-            }
-        }
 
         search_info.depth = depth;
         search_info.seldepth = 0;

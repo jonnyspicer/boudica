@@ -12,6 +12,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <mutex>
 
 namespace UCI {
 
@@ -155,7 +156,7 @@ void Handler::cmdUCI() {
 
 void Handler::cmdIsReady() {
     // Ensure any pending initialization is complete
-    std::cout << "readyok" << std::endl;
+    sendLine("readyok");
 }
 
 void Handler::cmdUCINewGame() {
@@ -547,64 +548,72 @@ std::string Handler::getOptionString(const std::string& name) const {
 // ============================================================================
 
 void Handler::sendInfo(const SearchInfo& info) {
-    std::cout << "info";
-    std::cout << " depth " << info.depth;
+    std::ostringstream ss;
+    ss << "info";
+    ss << " depth " << info.depth;
 
     if (info.seldepth > 0) {
-        std::cout << " seldepth " << info.seldepth;
+        ss << " seldepth " << info.seldepth;
     }
 
     if (info.isMate) {
-        std::cout << " score mate " << info.mateIn;
+        ss << " score mate " << info.mateIn;
     }
     else {
-        std::cout << " score cp " << info.score;
+        ss << " score cp " << info.score;
     }
 
     if (info.nodes > 0) {
-        std::cout << " nodes " << info.nodes;
+        ss << " nodes " << info.nodes;
     }
 
     if (info.nps > 0) {
-        std::cout << " nps " << info.nps;
+        ss << " nps " << info.nps;
     }
 
     if (info.time > 0) {
-        std::cout << " time " << info.time;
+        ss << " time " << info.time;
     }
 
     if (info.hashfull > 0) {
-        std::cout << " hashfull " << info.hashfull;
+        ss << " hashfull " << info.hashfull;
     }
 
     // Output PV
     if (!info.pv.empty()) {
-        std::cout << " pv";
+        ss << " pv";
         for (Move m : info.pv) {
-            std::cout << " " << moveToUCI(m);
+            ss << " " << moveToUCI(m);
         }
     }
 
-    std::cout << std::endl;
+    sendLine(ss.str());
 }
 
 void Handler::sendBestMove(Move bestMove, Move ponderMove) {
-    std::cout << "bestmove " << moveToUCI(bestMove);
+    std::ostringstream ss;
+    ss << "bestmove " << moveToUCI(bestMove);
 
     if (ponderMove != MOVE_NONE) {
-        std::cout << " ponder " << moveToUCI(ponderMove);
+        ss << " ponder " << moveToUCI(ponderMove);
     }
 
-    std::cout << std::endl;
+    sendLine(ss.str());
 }
 
 void Handler::sendString(const std::string& str) {
-    std::cout << "info string " << str << std::endl;
+    sendLine("info string " + str);
 }
 
 // ============================================================================
 // Utility Functions
 // ============================================================================
+
+void sendLine(const std::string& line) {
+    static std::mutex output_mutex;
+    std::lock_guard<std::mutex> lock(output_mutex);
+    std::cout << line << std::endl;
+}
 
 std::string moveToUCI(Move m) {
     if (m == MOVE_NONE) return "0000";

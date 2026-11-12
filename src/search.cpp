@@ -273,11 +273,12 @@ Move pick_next_move(ScoredMove* moves, int move_count, int current) {
 // ============================================================================
 void print_uci_info(const Position& pos, int depth, Value score,
                     const Move* pv, int pv_length, uint64_t nodes, uint64_t time_ms) {
-    std::cout << "info depth " << depth;
+    std::ostringstream ss;
+    ss << "info depth " << depth;
 
     // Selective depth (max ply reached)
     if (search_info.seldepth > 0) {
-        std::cout << " seldepth " << search_info.seldepth;
+        ss << " seldepth " << search_info.seldepth;
     }
 
     // Score (mate or centipawns)
@@ -285,33 +286,33 @@ void print_uci_info(const Position& pos, int depth, Value score,
         int mate_ply = VALUE_MATE - std::abs(score);
         int mate_moves = (mate_ply + 1) / 2;
         if (score > 0) {
-            std::cout << " score mate " << mate_moves;
+            ss << " score mate " << mate_moves;
         } else {
-            std::cout << " score mate -" << mate_moves;
+            ss << " score mate -" << mate_moves;
         }
     } else {
-        std::cout << " score cp " << score;
+        ss << " score cp " << score;
     }
 
     // Nodes and time
-    std::cout << " nodes " << nodes;
-    std::cout << " time " << time_ms;
+    ss << " nodes " << nodes;
+    ss << " time " << time_ms;
 
     // NPS (nodes per second)
     if (time_ms > 0) {
         uint64_t nps = nodes * 1000 / time_ms;
-        std::cout << " nps " << nps;
+        ss << " nps " << nps;
     }
 
     // Principal variation
     if (pv_length > 0) {
-        std::cout << " pv";
+        ss << " pv";
         for (int i = 0; i < pv_length; ++i) {
-            std::cout << " " << UCI::moveToUCI(pv[i]);
+            ss << " " << UCI::moveToUCI(pv[i]);
         }
     }
 
-    std::cout << std::endl;
+    UCI::sendLine(ss.str());
 }
 
 std::string pv_to_string(const Move* pv, int length) {
@@ -1041,8 +1042,7 @@ Move iterative_deepening(Position& pos, SearchLimits& limits) {
         search_info.score = VALUE_DRAW;
         search_info.pv_length = 1;
         search_info.pv[0] = book_move;
-        std::cout << "info depth 1 score cp 0 nodes 1 pv "
-                  << UCI::moveToUCI(book_move) << std::endl;
+        UCI::sendLine("info depth 1 score cp 0 nodes 1 pv " + UCI::moveToUCI(book_move));
         return book_move;
     }
 

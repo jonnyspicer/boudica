@@ -186,18 +186,20 @@ void score_moves(Position& pos, ScoredMove* moves, int move_count,
             PieceType victim = type_of(pos.piece_on(to_sq(m)));
             PieceType attacker = type_of(pos.piece_on(from_sq(m)));
 
-            // Check if capture is winning using SEE or simple comparison
-            int mvv_lva = MVV_LVA[victim][attacker];
+            // Check if capture is winning using SEE or simple comparison;
+            // capture history breaks ties within a victim class
+            int mvv_lva = MVV_LVA[victim][attacker] * 100
+                        + move_ordering.capture_history[pos.piece_on(from_sq(m))][to_sq(m)][victim] / 16;
 
             // Simple heuristic: capturing more valuable piece is good
             if (victim >= attacker) {
-                score = SCORE_GOOD_CAPTURE + mvv_lva * 100;
+                score = SCORE_GOOD_CAPTURE + mvv_lva;
             } else {
                 // Potentially losing capture - check with SEE
                 if (pos.see_ge(m, Value(0))) {
-                    score = SCORE_GOOD_CAPTURE + mvv_lva * 100;
+                    score = SCORE_GOOD_CAPTURE + mvv_lva;
                 } else {
-                    score = SCORE_BAD_CAPTURE + mvv_lva * 100;
+                    score = SCORE_BAD_CAPTURE + mvv_lva;
                 }
             }
         }
@@ -1026,7 +1028,22 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                 }
 
                 if (value >= beta) {
-                    // Beta cutoff - update move ordering
+                    // Beta cutoff - update capture history: reward a capture
+                    // that cut, penalise captures tried before the cutoff move
+                    int cap_bonus = depth * depth;
+                    if (is_capture) {
+                        move_ordering.update_capture_history(moved_piece, moved_to,
+                            type_of(pos.piece_on(moved_to)), cap_bonus);
+                    }
+                    for (int j = 0; j < i; ++j) {
+                        Move prev = scored_moves[j].move;
+                        if (prev != m && pos.capture(prev)) {
+                            move_ordering.update_capture_history(pos.piece_on(from_sq(prev)),
+                                to_sq(prev), type_of(pos.piece_on(to_sq(prev))), -cap_bonus);
+                        }
+                    }
+
+                    // Update quiet move ordering
                     if (!is_capture && !is_promotion) {
                         // Update killer moves
                         move_ordering.update_killers(m, ss->ply);

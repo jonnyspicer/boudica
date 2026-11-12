@@ -91,8 +91,12 @@ struct MoveOrderingTables {
         e = std::clamp(e, -CORR_MAX, CORR_MAX);
     }
 
+    // Capture history: indexed by [moving piece][to][captured piece type]
+    int capture_history[PIECE_NB][SQUARE_NB][PIECE_TYPE_NB];
+
     void clear() {
         std::memset(correction, 0, sizeof(correction));
+        std::memset(capture_history, 0, sizeof(capture_history));
         std::memset(killers, 0, sizeof(killers));
         std::memset(history, 0, sizeof(history));
         std::memset(countermoves, 0, sizeof(countermoves));
@@ -126,6 +130,10 @@ struct MoveOrderingTables {
             }
         }
 
+        for (auto& by_sq : capture_history)
+            for (auto& by_victim : by_sq)
+                for (int& h : by_victim) h /= 2;
+
         // Keep countermoves - they're generally position-independent
         // and valuable across moves
     }
@@ -145,6 +153,12 @@ struct MoveOrderingTables {
         // Gravity: reduce magnitude over time to prevent overflow
         int clamped_bonus = std::min(std::max(bonus, -16384), 16384);
         history[c][from][to] += clamped_bonus - history[c][from][to] * std::abs(clamped_bonus) / 16384;
+    }
+
+    void update_capture_history(Piece moved, Square to, PieceType captured, int bonus) {
+        int clamped_bonus = std::min(std::max(bonus, -16384), 16384);
+        int& h = capture_history[moved][to][captured];
+        h += clamped_bonus - h * std::abs(clamped_bonus) / 16384;
     }
 
     bool is_killer(Move m, int ply) const {

@@ -17,3 +17,29 @@ Method: `docs/strength-testing-plan.md`. Newest entries at the bottom.
 
 <!-- One section per run: version, Bench, machine, scale f, list (blitz/4040), rung,
      anchors, games, Ordo rating ± error, per-anchor performance, notes. -->
+
+### 2026-11-09: rung A blitz, main 37b10ac (before the TT fix)
+
+- **Bench:** 15749109. **Machine:** EC2 c7a.4xlarge on-demand, concurrency 15, scale f=0.775, TC 93.0+0.78.
+- **Anchors:** vice, smallbrain, fatalii05, sungorus, tantabus, fatalii06 (300 games each). MORA 1.1 excluded: it crashed in smoke testing.
+- **Result:** **1646 ± 38** CCRL blitz, 104.5/1800 (5.8%).
+- **Not valid as a baseline:** Boudica reported exactly 0.00 on 56% of its moves. The transposition table's 16-bit check used the same key bits as the bucket index, so any two positions in a bucket matched each other. This was fixed in PR #9 (adfaf29).
+
+### 2026-11-11: rung A blitz, main 1ddeefa (after the TT fix)
+
+- **Bench:** 9771570. **Machine:** EC2 c7a.4xlarge on-demand, concurrency 15, scale f=0.780, TC 93.6+0.78.
+- **Anchors:** same as above, 300 games each. MORA 1.1 excluded.
+- **Result:** **2633 ± 25** CCRL blitz, +1552 =169 −79 (90.9%). This is about +990 Elo over the 2026-11-09 run.
+- **Problems:** no time forfeits or crashes. 1681 games ended by adjudication, 119 normally. 0.00 evals fell to 5.3% of moves (from 56%).
+
+| Anchor | CCRL blitz | Boudica +/=/− | Score |
+|---|---|---|---|
+| tantabus | 2331 | 256 / 30 / 14 | 90.3% |
+| fatalii06 | 2317 | 222 / 41 / 37 | 80.8% |
+| sungorus | 2241 | 258 / 28 / 14 | 90.7% |
+| fatalii05 | 2207 | 245 / 46 / 9 | 89.3% |
+| smallbrain | 2114 | 279 / 19 / 2 | 96.2% |
+| vice | 1977 | 292 / 5 / 3 | 98.2% |
+
+- **Caveat:** 91% against anchors rated 1977–2331 is far outside their range, so 2633 is an extrapolation. The ± 25 does not include the error from extrapolating. A rung B gauntlet with anchors around 2500–2800 is needed for a reliable number.
+- **Minor issue:** some `info` lines carry a PV well over 100 moves long, cycling between two king moves. The PV is probably rebuilt from the TT without a repetition or length check. It is cosmetic and does not affect play.

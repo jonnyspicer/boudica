@@ -539,6 +539,8 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
 // Offline Quiescence Search
 // ============================================================================
 void init_offline_search() {
+    // qsearch probes the TT, which the UCI loop normally allocates
+    TT.resize(16);
     SearchLimits limits;
     limits.infinite = true;
     time_manager.init(limits, WHITE);

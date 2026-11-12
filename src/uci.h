@@ -197,6 +197,11 @@ private:
 // Utility Functions
 // ============================================================================
 
+// Write one whole line to stdout. The search thread and the UCI thread both
+// print (e.g. "readyok" during a search), and stdout is not synchronised with
+// stdio, so any line that can be printed while a search runs must go through here.
+void sendLine(const std::string& line);
+
 // Convert move to UCI string format (e2e4, e7e8q)
 std::string moveToUCI(Move m);
 

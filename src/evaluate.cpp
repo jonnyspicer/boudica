@@ -647,6 +647,22 @@ Value evaluate_impl(const Position& pos, EvalTrace* trace) {
         trace->tempo = trace_sign(us);
     }
 
+    // Mop-up: against a bare king, drive it to the edge and bring our king
+    // closer, so the search has a gradient towards mate (KRK, KQK, KBNK)
+    if (!pos.pieces(PAWN)) {
+        for (Color strong : {WHITE, BLACK}) {
+            if (pos.non_pawn_material(~strong) == VALUE_ZERO
+                && pos.non_pawn_material(strong) >= RookValue) {
+                Square wk = pos.square<KING>(~strong), sk = pos.square<KING>(strong);
+                int wf = file_of(wk), wr = rank_of(wk);
+                int edge = std::max(3 - wf, wf - 4) + std::max(3 - wr, wr - 4);  // 0..6
+                int kdist = std::abs(wf - file_of(sk)) + std::abs(wr - rank_of(sk));
+                int bonus = 20 * edge + 6 * (14 - kdist);
+                tapered += strong == us ? Value(bonus) : Value(-bonus);
+            }
+        }
+    }
+
     // Endgame scale factors for drawish positions
     if (std::abs(tapered) > 0) {
         int scale = 128;  // Normal = 128 (no scaling)
@@ -669,15 +685,19 @@ Value evaluate_impl(const Position& pos, EvalTrace* trace) {
             }
         }
 
-        // No pawns - very hard to win with minor material advantage
+        // No pawns: winning needs a clear material edge, not just enough
+        // material to mate (KR vs K wins, KR vs KR and KR vs KB are drawish)
         if (total_pawns == 0) {
-            // Side with advantage needs enough material to force mate
-            Value stronger_npm = tapered > 0 ?
-                pos.non_pawn_material(us) : pos.non_pawn_material(~us);
-            if (stronger_npm <= BishopValue) {
-                scale = 0;  // Can't force mate with just a minor piece
-            } else if (stronger_npm <= 2 * KnightValue) {
-                scale = 16;  // Very difficult to mate
+            Color strong = tapered > 0 ? us : ~us;
+            Value strong_npm = pos.non_pawn_material(strong);
+            Value weak_npm = pos.non_pawn_material(~strong);
+            if (strong_npm <= BishopValue) {
+                scale = 0;   // A lone minor piece can't force mate
+            } else if (strong_npm == 2 * KnightValue && weak_npm == VALUE_ZERO
+                       && popcount(pos.pieces(strong, KNIGHT)) == 2) {
+                scale = 0;   // KNN vs K can't force mate
+            } else if (strong_npm - weak_npm <= BishopValue) {
+                scale = 16;  // Edge of a minor piece or less: very hard to win
             }
         }
 

@@ -482,6 +482,26 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
 }
 
 // ============================================================================
+// Offline Quiescence Search
+// ============================================================================
+void init_offline_search() {
+    SearchLimits limits;
+    limits.infinite = true;
+    time_manager.init(limits, WHITE);
+    search_info.clear();
+    stop_search = false;
+}
+
+Value qsearch_root(Position& pos) {
+    // One stack per thread; qsearch only needs ply and in_check initialised
+    thread_local SearchStack stack[MAX_PLY + 4];
+    SearchStack* ss = stack + 2;
+    ss->ply = 0;
+    ss->in_check = false;
+    return qsearch(pos, ss, -VALUE_INFINITE, VALUE_INFINITE);
+}
+
+// ============================================================================
 // Main Alpha-Beta Search
 // ============================================================================
 Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta, bool cut_node) {

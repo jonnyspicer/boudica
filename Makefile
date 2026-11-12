@@ -94,6 +94,7 @@ $(TUNER_TARGET): $(ENGINE_CORE_OBJS) $(TUNER_OBJS)
 # Compile tuner source files
 $(BUILD_DIR)/tuner/%.o: $(TUNER_DIR)/%.cpp | $(BUILD_DIR)
 	@echo "Compiling $<..."
+	@mkdir -p $(BUILD_DIR)/tuner
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Convenience alias
@@ -141,9 +142,11 @@ help:
 	@echo "  test    - Run TT and perft tests, then bench"
 	@echo "  help    - Show this help message"
 	@echo ""
-	@echo "Tuner Usage:"
-	@echo "  ./tuner --epd data/quiet.epd --epochs 100 --output tuned.txt"
-	@echo "  ./tuner --load tuned.txt --print-cpp"
+	@echo "Tuner Usage (lines are \"<FEN> | <result>\", result 1.0/0.5/0.0 for White):"
+	@echo "  ./tuner --filter-quiet --epd raw.epd --output quiet.epd"
+	@echo "  ./tuner --epd quiet.epd --epochs 100 --output tuned.txt"
+	@echo "  ./tuner --verify --epd quiet.epd"
+	@echo "  ./tuner --help"
 	@echo ""
 	@echo "Compiler: $(CXX)"
 	@echo "Platform: $(UNAME_S)"

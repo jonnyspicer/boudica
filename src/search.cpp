@@ -332,6 +332,8 @@ static Value corrected_eval(const Position& pos, Value raw) {
 Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
     // Initialize PV for this node (prevent stale PV data)
     ss->pv_length = 0;
+    const bool pv_node = (beta - alpha > 1);
+    const Value original_alpha = alpha;
 
     // Check for stop signal
     if (stop_search) {
@@ -355,6 +357,10 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
         return VALUE_DRAW;
     }
 
+    // Determine if we're in check (before the ply limits below use it)
+    bool in_check = bool(pos.checkers());
+    ss->in_check = in_check;
+
     // Max ply check - limit total search depth to prevent explosion
     if (ss->ply >= MAX_PLY - 1) {
         return !ss->in_check ? Eval::evaluate(pos) : VALUE_DRAW;
@@ -367,18 +373,49 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
         return Eval::evaluate(pos);
     }
 
-    // Determine if we're in check
-    bool in_check = bool(pos.checkers());
-    ss->in_check = in_check;
+    // Transposition table: qsearch entries are stored at DEPTH_QS_NO_CHECKS,
+    // so they can cut off qsearch but never a main-search node (depth >= 1)
+    const Key pos_key = pos.key();
+    bool tt_hit = false;
+    TTEntry* tte = TT.probe(pos_key, tt_hit);
+    Move tt_move = MOVE_NONE;
+    Value tt_value = VALUE_NONE, tt_eval = VALUE_NONE;
+    Bound tt_bound = BOUND_NONE;
+    if (tt_hit) {
+        tt_move = tte->move();
+        tt_value = value_from_tt(tte->score(), ss->ply);
+        tt_eval = tte->static_eval();
+        tt_bound = tte->bound();
+        if (!pv_node && tte->depth() >= DEPTH_QS_NO_CHECKS && tt_value != VALUE_NONE &&
+            ((tt_bound == BOUND_EXACT) ||
+             (tt_bound == BOUND_LOWER && tt_value >= beta) ||
+             (tt_bound == BOUND_UPPER && tt_value <= alpha))) {
+            return tt_value;
+        }
+    }
 
     Value best_value;
     Value futility_base;
+    Value static_eval = VALUE_NONE;
+    Move best_move = MOVE_NONE;
 
     if (!in_check) {
         // Stand pat: use static evaluation as a lower bound
-        best_value = corrected_eval(pos, Eval::evaluate(pos));
+        // static_eval is the raw eval (what the TT stores); stand pat uses the corrected one
+        static_eval = (tt_hit && tt_eval != VALUE_NONE) ? tt_eval : Eval::evaluate(pos);
+        best_value = corrected_eval(pos, static_eval);
+
+        // A TT bound on the real score is a better estimate than the eval
+        if (tt_value != VALUE_NONE &&
+            (tt_bound & (tt_value > best_value ? BOUND_LOWER : BOUND_UPPER))) {
+            best_value = tt_value;
+        }
 
         if (best_value >= beta) {
+            if (!tt_hit) {
+                TT.store(pos_key, value_to_tt(best_value, ss->ply), BOUND_LOWER,
+                         Depth(DEPTH_QS_NO_CHECKS), MOVE_NONE, static_eval);
+            }
             return best_value;  // Fail high (stand pat is good enough)
         }
 
@@ -421,6 +458,7 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
         PieceType victim = type_of(pos.piece_on(to_sq(moves[i])));
         PieceType attacker = type_of(pos.piece_on(from_sq(moves[i])));
         scored_moves[i].score = MVV_LVA[victim][attacker] * 100;
+        if (moves[i] == tt_move) scored_moves[i].score = 10000000;
     }
 
     // Search captures
@@ -475,6 +513,7 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
 
             if (value > alpha) {
                 alpha = value;
+                best_move = m;
 
                 if (value >= beta) {
                     break;  // Fail high (beta cutoff)
@@ -482,6 +521,16 @@ Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta) {
             }
         }
     }
+
+    // Checkmated: every evasion was illegal
+    if (in_check && best_value == mated_in(ss->ply)) {
+        return best_value;
+    }
+
+    Bound bound = best_value >= beta ? BOUND_LOWER
+                : (pv_node && best_value > original_alpha) ? BOUND_EXACT : BOUND_UPPER;
+    TT.store(pos_key, value_to_tt(best_value, ss->ply), bound,
+             Depth(DEPTH_QS_NO_CHECKS), best_move, static_eval);
 
     return best_value;
 }

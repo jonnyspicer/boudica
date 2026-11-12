@@ -24,7 +24,7 @@ echo "engine Bench: $("$ENGINE" bench | sed -n 's/^Nodes searched *: //p') games
     -rounds "$GAMES" -concurrency "$CONCURRENCY" \
     -draw movenumber=40 movecount=8 score=10 \
     -resign movecount=4 score=1000 twosided=true \
-    -pgnout file="$OUT/games.pgn" > "$OUT/fastchess.log" 2>&1
+    -recover -pgnout file="$OUT/games.pgn" > "$OUT/fastchess.log" 2>&1
 
 # python-chess: pip install chess (Ubuntu has no package for it)
 python3 "$HERE/pgn2epd.py" "$OUT/games.pgn" > "$OUT/raw.epd"

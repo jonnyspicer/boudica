@@ -223,6 +223,7 @@ private:
     TimePoint start_time;
     uint64_t allocated_time = 0;     // Time allocated for this move (ms)
     uint64_t max_time = 0;           // Maximum time (hard limit)
+    uint64_t node_limit = 0;         // "go nodes" budget, 0 = none
     uint64_t check_interval = 512;  // Check time every N nodes (more frequent for short TC)
     mutable uint64_t last_check = 0;
 };

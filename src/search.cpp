@@ -162,7 +162,8 @@ bool is_draw(const Position& pos, int ply) {
 // Move Scoring for Ordering
 // ============================================================================
 void score_moves(Position& pos, ScoredMove* moves, int move_count,
-                 Move tt_move, int ply, Move prev_move) {
+                 Move tt_move, int ply, Move prev_move,
+                 Piece prev2_piece, Square prev2_to) {
     Color us = pos.side_to_move();
 
     // Get previous move info for continuation history
@@ -225,11 +226,14 @@ void score_moves(Position& pos, ScoredMove* moves, int move_count,
                     Square curr_to = to_sq(m);
                     score = SCORE_QUIET_BASE + move_ordering.get_history(us, m);
                     score += move_ordering.get_continuation_history(prev_piece, prev_to, curr_piece, curr_to);
+                    score += move_ordering.get_continuation_history2(prev2_piece, prev2_to, curr_piece, curr_to);
                 }
             }
             else {
                 // History heuristic only
-                score = SCORE_QUIET_BASE + move_ordering.get_history(us, m);
+                score = SCORE_QUIET_BASE + move_ordering.get_history(us, m)
+                      + move_ordering.get_continuation_history2(prev2_piece, prev2_to,
+                                                                 pos.piece_on(from_sq(m)), to_sq(m));
             }
         }
 
@@ -727,6 +731,8 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         int R = NULL_MOVE_REDUCTION + depth / 4 + improving;
 
         ss->current_move = MOVE_NULL;
+        ss->moved_piece = NO_PIECE;  // children must not key history on a stale sibling move
+        ss->to_square = SQ_NONE;
         StateInfo null_st;
         pos.do_null_move(null_st);
 
@@ -768,6 +774,9 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
             // Only try captures with positive SEE
             if (!pos.see_ge(m, Value(0))) continue;
 
+            ss->current_move = m;
+            ss->moved_piece = pos.piece_on(from_sq(m));
+            ss->to_square = to_sq(m);
             StateInfo st;
             pos.do_move(m, st);
             (ss + 1)->ply = ss->ply + 1;
@@ -809,7 +818,8 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     }
 
     Move prev_move = (ss - 1)->current_move;
-    score_moves(pos, scored_moves, move_count, tt_move, ss->ply, prev_move);
+    score_moves(pos, scored_moves, move_count, tt_move, ss->ply, prev_move,
+                (ss - 2)->moved_piece, (ss - 2)->to_square);
 
     // ========================================================================
     // Move Loop
@@ -1035,12 +1045,13 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                         int bonus = depth * depth;
                         move_ordering.update_history(pos.side_to_move(), m, bonus);
 
-                        // Update continuation history
-                        if ((ss - 1)->moved_piece != NO_PIECE) {
-                            move_ordering.update_continuation_history(
-                                (ss - 1)->moved_piece, (ss - 1)->to_square,
-                                moved_piece, moved_to, bonus);
-                        }
+                        // Update continuation histories (no-ops when that ply has no move)
+                        move_ordering.update_continuation_history(
+                            (ss - 1)->moved_piece, (ss - 1)->to_square,
+                            moved_piece, moved_to, bonus);
+                        move_ordering.update_continuation_history(
+                            (ss - 2)->moved_piece, (ss - 2)->to_square,
+                            moved_piece, moved_to, bonus, 2);
 
                         // Penalize other quiet moves that didn't cause cutoff
                         for (int j = 0; j < i; ++j) {
@@ -1048,16 +1059,15 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                             if (!pos.capture(prev)) {
                                 move_ordering.update_history(pos.side_to_move(), prev, -bonus);
                                 // Also penalize in continuation history
-                                if ((ss - 1)->moved_piece != NO_PIECE) {
-                                    Piece prev_piece_j = type_of(prev) == CASTLING ?
-                                        make_piece(pos.side_to_move(), KING) :
-                                        pos.piece_on(from_sq(prev));
-                                    if (prev_piece_j != NO_PIECE) {
-                                        move_ordering.update_continuation_history(
-                                            (ss - 1)->moved_piece, (ss - 1)->to_square,
-                                            prev_piece_j, to_sq(prev), -bonus);
-                                    }
-                                }
+                                Piece prev_piece_j = type_of(prev) == CASTLING ?
+                                    make_piece(pos.side_to_move(), KING) :
+                                    pos.piece_on(from_sq(prev));
+                                move_ordering.update_continuation_history(
+                                    (ss - 1)->moved_piece, (ss - 1)->to_square,
+                                    prev_piece_j, to_sq(prev), -bonus);
+                                move_ordering.update_continuation_history(
+                                    (ss - 2)->moved_piece, (ss - 2)->to_square,
+                                    prev_piece_j, to_sq(prev), -bonus, 2);
                             }
                         }
 

@@ -70,6 +70,8 @@ struct MoveOrderingTables {
     // Continuation history: indexed by [prev_piece][prev_to][curr_piece][curr_to]
     // Tracks piece-to-square correlations across consecutive moves
     int continuation_history[PIECE_NB][SQUARE_NB][PIECE_NB][SQUARE_NB];
+    // Same, keyed on our own previous move (two plies back)
+    int continuation_history2[PIECE_NB][SQUARE_NB][PIECE_NB][SQUARE_NB];
 
     // Static eval correction history, indexed by [side to move][pawn key].
     // Learns how far search results land from the static eval for each pawn
@@ -97,6 +99,7 @@ struct MoveOrderingTables {
         std::memset(history, 0, sizeof(history));
         std::memset(countermoves, 0, sizeof(countermoves));
         std::memset(continuation_history, 0, sizeof(continuation_history));
+        std::memset(continuation_history2, 0, sizeof(continuation_history2));
     }
 
     // Age the tables between searches - decay history by 50%, clear killers
@@ -121,6 +124,7 @@ struct MoveOrderingTables {
                 for (int p2 = 0; p2 < PIECE_NB; ++p2) {
                     for (int s2 = 0; s2 < SQUARE_NB; ++s2) {
                         continuation_history[p1][s1][p2][s2] /= 2;
+                        continuation_history2[p1][s1][p2][s2] /= 2;
                     }
                 }
             }
@@ -163,9 +167,17 @@ struct MoveOrderingTables {
     }
 
     // Update continuation history
-    void update_continuation_history(Piece prev_piece, Square prev_to, Piece curr_piece, Square curr_to, int bonus) {
+    int get_continuation_history2(Piece prev_piece, Square prev_to, Piece curr_piece, Square curr_to) const {
+        if (prev_piece == NO_PIECE || curr_piece == NO_PIECE) return 0;
+        return continuation_history2[prev_piece][prev_to][curr_piece][curr_to];
+    }
+
+    // plies_back selects the table: 1 = opponent's last move, 2 = our previous move
+    void update_continuation_history(Piece prev_piece, Square prev_to, Piece curr_piece, Square curr_to, int bonus,
+                                     int plies_back = 1) {
         if (prev_piece == NO_PIECE || curr_piece == NO_PIECE) return;
-        int& entry = continuation_history[prev_piece][prev_to][curr_piece][curr_to];
+        int& entry = (plies_back == 1 ? continuation_history : continuation_history2)
+                         [prev_piece][prev_to][curr_piece][curr_to];
         int clamped_bonus = std::min(std::max(bonus, -16384), 16384);
         entry += clamped_bonus - entry * std::abs(clamped_bonus) / 16384;
     }
@@ -300,7 +312,8 @@ void clear_search();
 
 // Score moves for ordering
 void score_moves(Position& pos, ScoredMove* moves, int move_count,
-                 Move tt_move, int ply, Move prev_move);
+                 Move tt_move, int ply, Move prev_move,
+                 Piece prev2_piece = NO_PIECE, Square prev2_to = SQ_NONE);
 
 // Pick the next best move from the list
 Move pick_next_move(ScoredMove* moves, int move_count, int current);

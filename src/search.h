@@ -252,6 +252,13 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
 // Quiescence search - extends tactical sequences until quiet
 Value qsearch(Position& pos, SearchStack* ss, Value alpha, Value beta);
 
+// Offline quiescence search (used by the tuner to find quiet positions).
+// Call init_offline_search() once, then qsearch_root() from any thread: it
+// searches the root with a full window and no time limit. Concurrent calls
+// share only search_info's statistics and the eval's pawn hash.
+void init_offline_search();
+Value qsearch_root(Position& pos);
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

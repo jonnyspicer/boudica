@@ -9,150 +9,27 @@ namespace Boudica {
 
 namespace Eval {
 
+// Tunable parameters, initialised to the defaults in eval_params.h
+EvalParams params;
+
 // ============================================================================
-// Piece-Square Tables (PST)
-// Values are from White's perspective, indexed by square (A1=0 ... H8=63)
-// Separate tables for middlegame (mg) and endgame (eg)
+// Evaluation Trace
 // ============================================================================
+//
+// Every evaluation function is a template on Trace. With Trace == false (the
+// engine's path) the TRACE statements are compiled out; with Trace == true each
+// parameter use also adds its occurrence count to trace->coef, signed so that
+// White's occurrences count +1 and Black's -1.
 
-// Pawn PST - Encourage advancement, center control, avoid edges
-constexpr Score PawnTable[SQUARE_NB] = {
-    // Rank 1 (impossible for pawns)
-    S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),
-    // Rank 2
-    S(-5, 0),  S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(-5, 0),
-    // Rank 3
-    S(-5, 0),  S(0, 5),   S(5, 5),   S(10, 5),  S(10, 5),  S(5, 5),   S(0, 5),   S(-5, 0),
-    // Rank 4
-    S(-5, 5),  S(0, 10),  S(10, 10), S(25, 15), S(25, 15), S(10, 10), S(0, 10),  S(-5, 5),
-    // Rank 5
-    S(0, 15),  S(5, 20),  S(15, 25), S(30, 30), S(30, 30), S(15, 25), S(5, 20),  S(0, 15),
-    // Rank 6
-    S(5, 35),  S(10, 40), S(20, 45), S(35, 50), S(35, 50), S(20, 45), S(10, 40), S(5, 35),
-    // Rank 7
-    S(50, 70), S(50, 70), S(50, 70), S(50, 70), S(50, 70), S(50, 70), S(50, 70), S(50, 70),
-    // Rank 8 (impossible for pawns - would be promoted)
-    S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0),   S(0, 0)
-};
+#define TRACE(param_index, count) \
+    do { if constexpr (Trace) trace->coef[param_index] += (count); } while (0)
 
-// Knight PST - Strong center preference, avoid edges strongly
-constexpr Score KnightTable[SQUARE_NB] = {
-    // Rank 1
-    S(-50, -30), S(-40, -20), S(-30, -10), S(-25, -5),  S(-25, -5),  S(-30, -10), S(-40, -20), S(-50, -30),
-    // Rank 2
-    S(-35, -20), S(-20, -10), S(-5, 0),    S(0, 5),     S(0, 5),     S(-5, 0),    S(-20, -10), S(-35, -20),
-    // Rank 3
-    S(-20, -10), S(0, 0),     S(15, 10),   S(20, 15),   S(20, 15),   S(15, 10),   S(0, 0),     S(-20, -10),
-    // Rank 4
-    S(-10, -5),  S(10, 5),    S(25, 15),   S(30, 20),   S(30, 20),   S(25, 15),   S(10, 5),    S(-10, -5),
-    // Rank 5
-    S(-10, -5),  S(10, 5),    S(25, 15),   S(30, 20),   S(30, 20),   S(25, 15),   S(10, 5),    S(-10, -5),
-    // Rank 6
-    S(-20, -10), S(5, 5),     S(20, 10),   S(25, 15),   S(25, 15),   S(20, 10),   S(5, 5),     S(-20, -10),
-    // Rank 7
-    S(-35, -20), S(-15, -10), S(0, 0),     S(5, 5),     S(5, 5),     S(0, 0),     S(-15, -10), S(-35, -20),
-    // Rank 8
-    S(-50, -30), S(-40, -20), S(-30, -10), S(-25, -5),  S(-25, -5),  S(-30, -10), S(-40, -20), S(-50, -30)
-};
+#define IDX(member) EVAL_PARAM_INDEX(member)
 
-// Bishop PST - Long diagonals, avoid corners, center preference
-constexpr Score BishopTable[SQUARE_NB] = {
-    // Rank 1
-    S(-20, -15), S(-10, -10), S(-15, -10), S(-10, -5),  S(-10, -5),  S(-15, -10), S(-10, -10), S(-20, -15),
-    // Rank 2
-    S(-10, -10), S(5, 5),     S(0, 0),     S(5, 5),     S(5, 5),     S(0, 0),     S(5, 5),     S(-10, -10),
-    // Rank 3
-    S(-5, -5),   S(10, 5),    S(10, 10),   S(15, 10),   S(15, 10),   S(10, 10),   S(10, 5),    S(-5, -5),
-    // Rank 4
-    S(0, 0),     S(5, 5),     S(15, 10),   S(20, 15),   S(20, 15),   S(15, 10),   S(5, 5),     S(0, 0),
-    // Rank 5
-    S(0, 0),     S(10, 10),   S(15, 10),   S(20, 15),   S(20, 15),   S(15, 10),   S(10, 10),   S(0, 0),
-    // Rank 6
-    S(-5, -5),   S(10, 5),    S(10, 10),   S(10, 10),   S(10, 10),   S(10, 10),   S(10, 5),    S(-5, -5),
-    // Rank 7
-    S(-10, -10), S(5, 0),     S(0, 0),     S(0, 5),     S(0, 5),     S(0, 0),     S(5, 0),     S(-10, -10),
-    // Rank 8
-    S(-20, -15), S(-10, -10), S(-15, -10), S(-10, -5),  S(-10, -5),  S(-15, -10), S(-10, -10), S(-20, -15)
-};
-
-// Rook PST - 7th rank bonus, open files, central control
-constexpr Score RookTable[SQUARE_NB] = {
-    // Rank 1
-    S(0, 0),     S(5, 0),     S(10, 0),    S(15, 0),    S(15, 0),    S(10, 0),    S(5, 0),     S(0, 0),
-    // Rank 2
-    S(-5, 0),    S(0, 0),     S(0, 0),     S(5, 0),     S(5, 0),     S(0, 0),     S(0, 0),     S(-5, 0),
-    // Rank 3
-    S(-5, 0),    S(0, 0),     S(0, 5),     S(5, 5),     S(5, 5),     S(0, 5),     S(0, 0),     S(-5, 0),
-    // Rank 4
-    S(-5, 5),    S(0, 5),     S(0, 10),    S(5, 10),    S(5, 10),    S(0, 10),    S(0, 5),     S(-5, 5),
-    // Rank 5
-    S(-5, 10),   S(0, 10),    S(0, 15),    S(5, 15),    S(5, 15),    S(0, 15),    S(0, 10),    S(-5, 10),
-    // Rank 6
-    S(-5, 15),   S(0, 15),    S(0, 20),    S(0, 20),    S(0, 20),    S(0, 20),    S(0, 15),    S(-5, 15),
-    // Rank 7 - Strong bonus for rooks on 7th
-    S(20, 30),   S(25, 30),   S(30, 30),   S(35, 30),   S(35, 30),   S(30, 30),   S(25, 30),   S(20, 30),
-    // Rank 8
-    S(10, 20),   S(15, 20),   S(20, 25),   S(25, 25),   S(25, 25),   S(20, 25),   S(15, 20),   S(10, 20)
-};
-
-// Queen PST - Central but not too early, avoid corners
-constexpr Score QueenTable[SQUARE_NB] = {
-    // Rank 1 - Slight penalty for early queen development
-    S(-20, -15), S(-10, -10), S(-5, -5),   S(0, 0),     S(0, 0),     S(-5, -5),   S(-10, -10), S(-20, -15),
-    // Rank 2
-    S(-10, -10), S(0, 0),     S(5, 5),     S(5, 5),     S(5, 5),     S(5, 5),     S(0, 0),     S(-10, -10),
-    // Rank 3
-    S(-5, -5),   S(5, 5),     S(10, 10),   S(10, 10),   S(10, 10),   S(10, 10),   S(5, 5),     S(-5, -5),
-    // Rank 4
-    S(0, 0),     S(5, 5),     S(10, 10),   S(15, 15),   S(15, 15),   S(10, 10),   S(5, 5),     S(0, 0),
-    // Rank 5
-    S(0, 0),     S(5, 5),     S(10, 10),   S(15, 15),   S(15, 15),   S(10, 10),   S(5, 5),     S(0, 0),
-    // Rank 6
-    S(-5, 0),    S(5, 5),     S(10, 10),   S(10, 10),   S(10, 10),   S(10, 10),   S(5, 5),     S(-5, 0),
-    // Rank 7
-    S(-10, -5),  S(0, 0),     S(5, 5),     S(5, 5),     S(5, 5),     S(5, 5),     S(0, 0),     S(-10, -5),
-    // Rank 8
-    S(-20, -10), S(-10, -5),  S(-5, 0),    S(0, 0),     S(0, 0),     S(-5, 0),    S(-10, -5),  S(-20, -10)
-};
-
-// King PST (Middlegame) - Castle to safety, avoid center
-constexpr Score KingTableMG[SQUARE_NB] = {
-    // Rank 1 - Castled positions are good
-    S(20, 0),    S(30, 0),    S(10, 0),    S(-20, 0),   S(-20, 0),   S(-10, 0),   S(30, 0),    S(20, 0),
-    // Rank 2
-    S(20, 0),    S(20, 0),    S(0, 0),     S(-20, 0),   S(-20, 0),   S(0, 0),     S(20, 0),    S(20, 0),
-    // Rank 3
-    S(-10, 0),   S(-20, 0),   S(-30, 0),   S(-40, 0),   S(-40, 0),   S(-30, 0),   S(-20, 0),   S(-10, 0),
-    // Rank 4
-    S(-30, 0),   S(-40, 0),   S(-50, 0),   S(-60, 0),   S(-60, 0),   S(-50, 0),   S(-40, 0),   S(-30, 0),
-    // Rank 5
-    S(-40, 0),   S(-50, 0),   S(-60, 0),   S(-70, 0),   S(-70, 0),   S(-60, 0),   S(-50, 0),   S(-40, 0),
-    // Rank 6
-    S(-50, 0),   S(-60, 0),   S(-70, 0),   S(-80, 0),   S(-80, 0),   S(-70, 0),   S(-60, 0),   S(-50, 0),
-    // Rank 7
-    S(-60, 0),   S(-70, 0),   S(-80, 0),   S(-90, 0),   S(-90, 0),   S(-80, 0),   S(-70, 0),   S(-60, 0),
-    // Rank 8
-    S(-70, 0),   S(-80, 0),   S(-90, 0),   S(-100, 0),  S(-100, 0),  S(-90, 0),   S(-80, 0),   S(-70, 0)
-};
-
-// King PST (Endgame) - Centralize the king
-constexpr Score KingTableEG[SQUARE_NB] = {
-    // Rank 1
-    S(0, -30),   S(0, -20),   S(0, -10),   S(0, -5),    S(0, -5),    S(0, -10),   S(0, -20),   S(0, -30),
-    // Rank 2
-    S(0, -20),   S(0, -5),    S(0, 5),     S(0, 10),    S(0, 10),    S(0, 5),     S(0, -5),    S(0, -20),
-    // Rank 3
-    S(0, -10),   S(0, 5),     S(0, 15),    S(0, 20),    S(0, 20),    S(0, 15),    S(0, 5),     S(0, -10),
-    // Rank 4
-    S(0, -5),    S(0, 10),    S(0, 20),    S(0, 25),    S(0, 25),    S(0, 20),    S(0, 10),    S(0, -5),
-    // Rank 5
-    S(0, -5),    S(0, 10),    S(0, 20),    S(0, 25),    S(0, 25),    S(0, 20),    S(0, 10),    S(0, -5),
-    // Rank 6
-    S(0, -10),   S(0, 5),     S(0, 15),    S(0, 20),    S(0, 20),    S(0, 15),    S(0, 5),     S(0, -10),
-    // Rank 7
-    S(0, -20),   S(0, -5),    S(0, 5),     S(0, 10),    S(0, 10),    S(0, 5),     S(0, -5),    S(0, -20),
-    // Rank 8
-    S(0, -30),   S(0, -20),   S(0, -10),   S(0, -5),    S(0, -5),    S(0, -10),   S(0, -20),   S(0, -30)
+// First trace index of each piece type's PST
+constexpr int PstIndex[PIECE_TYPE_NB] = {
+    0, IDX(PawnTable), IDX(KnightTable), IDX(BishopTable),
+    IDX(RookTable), IDX(QueenTable), IDX(KingTable), 0
 };
 
 // ============================================================================
@@ -162,12 +39,12 @@ constexpr Score KingTableEG[SQUARE_NB] = {
 // Get the appropriate PST score for a piece at a square
 inline Score pst_score(PieceType pt, Square sq) {
     switch (pt) {
-        case PAWN:   return PawnTable[sq];
-        case KNIGHT: return KnightTable[sq];
-        case BISHOP: return BishopTable[sq];
-        case ROOK:   return RookTable[sq];
-        case QUEEN:  return QueenTable[sq];
-        case KING:   return KingTableMG[sq] + KingTableEG[sq];
+        case PAWN:   return params.PawnTable[sq];
+        case KNIGHT: return params.KnightTable[sq];
+        case BISHOP: return params.BishopTable[sq];
+        case ROOK:   return params.RookTable[sq];
+        case QUEEN:  return params.QueenTable[sq];
+        case KING:   return params.KingTable[sq];
         default:     return S(0, 0);
     }
 }
@@ -175,6 +52,11 @@ inline Score pst_score(PieceType pt, Square sq) {
 // Flip square vertically for black's perspective
 constexpr Square flip_square(Square sq) {
     return Square(sq ^ 56);
+}
+
+// +1 for White, -1 for Black: the sign of a color's terms in the trace
+constexpr int trace_sign(Color c) {
+    return c == WHITE ? 1 : -1;
 }
 
 // ============================================================================
@@ -211,23 +93,28 @@ Value taper_score(Score score, int phase) {
 // Material Evaluation
 // ============================================================================
 
-Score evaluate_material(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_material(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     // Count material for each piece type
     for (PieceType pt = PAWN; pt <= QUEEN; ++pt) {
         int our_count = popcount(pos.pieces(us, pt));
         int their_count = popcount(pos.pieces(them, pt));
-        score += PieceValue[pt] * (our_count - their_count);
+        score += params.PieceValue[pt] * (our_count - their_count);
+        TRACE(IDX(PieceValue) + pt, sign * (our_count - their_count));
     }
 
     // Bishop pair bonus
     if (popcount(pos.pieces(us, BISHOP)) >= 2) {
-        score += BishopPairBonus;
+        score += params.BishopPairBonus;
+        TRACE(IDX(BishopPairBonus), sign);
     }
     if (popcount(pos.pieces(them, BISHOP)) >= 2) {
-        score -= BishopPairBonus;
+        score -= params.BishopPairBonus;
+        TRACE(IDX(BishopPairBonus), -sign);
     }
 
     return score;
@@ -237,9 +124,11 @@ Score evaluate_material(const Position& pos, Color us) {
 // Piece-Square Table Evaluation
 // ============================================================================
 
-Score evaluate_pst(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_pst(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     // Evaluate our pieces
     for (PieceType pt = PAWN; pt <= KING; ++pt) {
@@ -249,6 +138,7 @@ Score evaluate_pst(const Position& pos, Color us) {
             // Use square as-is for white, flip for black
             Square eval_sq = (us == WHITE) ? sq : flip_square(sq);
             score += pst_score(pt, eval_sq);
+            TRACE(PstIndex[pt] + eval_sq, sign);
         }
     }
 
@@ -260,6 +150,7 @@ Score evaluate_pst(const Position& pos, Color us) {
             // Use flipped square for black pieces when evaluating from white's view
             Square eval_sq = (them == WHITE) ? sq : flip_square(sq);
             score -= pst_score(pt, eval_sq);
+            TRACE(PstIndex[pt] + eval_sq, -sign);
         }
     }
 
@@ -286,9 +177,11 @@ static PawnHashEntry pawn_hash_table[PAWN_HASH_SIZE];
 // Pawn Structure - Basic (Cacheable: depends only on pawn positions)
 // ============================================================================
 
-Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_pawn_structure_basic(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     Bitboard our_pawns = pos.pieces(us, PAWN);
     Bitboard their_pawns = pos.pieces(them, PAWN);
@@ -305,14 +198,16 @@ Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
 
         // Doubled pawns - penalize if there's a friendly pawn ahead (avoids double-counting)
         if (our_pawns & forward_file_bb(us, sq)) {
-            score += DoubledPawnPenalty;
+            score += params.DoubledPawnPenalty;
+            TRACE(IDX(DoubledPawnPenalty), sign);
         }
 
         // Isolated pawns - no friendly pawns on adjacent files
         Bitboard adjacent_files = adjacent_files_bb(sq);
 
         if (!(our_pawns & adjacent_files)) {
-            score += IsolatedPawnPenalty;
+            score += params.IsolatedPawnPenalty;
+            TRACE(IDX(IsolatedPawnPenalty), sign);
         }
 
         // Connected pawns - friendly pawn on adjacent file and same/adjacent rank
@@ -321,7 +216,8 @@ Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
         if (r < RANK_8) adjacent_ranks |= rank_bb(Rank(r + 1));
 
         if (our_pawns & adjacent_files & adjacent_ranks) {
-            score += ConnectedPawnBonus;
+            score += params.ConnectedPawnBonus;
+            TRACE(IDX(ConnectedPawnBonus), sign);
         }
 
         // Backward pawns - no adjacent friendly pawn at same rank or behind,
@@ -332,7 +228,8 @@ Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
                 Square stop = sq + pawn_push(us);
                 if (stop >= SQ_A1 && stop <= SQ_H8) {
                     if (enemy_pawn_control & square_bb(stop)) {
-                        score += BackwardPawnPenalty;
+                        score += params.BackwardPawnPenalty;
+                        TRACE(IDX(BackwardPawnPenalty), sign);
                     }
                 }
             }
@@ -343,14 +240,16 @@ Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
 
         if (!(their_pawns & blocking_zone)) {
             Rank rel_rank = relative_rank(us, sq);
-            score += PassedPawnBonus[rel_rank];
+            score += params.PassedPawnBonus[rel_rank];
+            TRACE(IDX(PassedPawnBonus) + rel_rank, sign);
 
             // Protected passed pawn (defended by another pawn)
             Bitboard pawn_defenders = (us == WHITE)
                 ? pawn_attacks_bb<BLACK>(square_bb(sq))
                 : pawn_attacks_bb<WHITE>(square_bb(sq));
             if (our_pawns & pawn_defenders) {
-                score += S(10, 15);
+                score += params.ProtectedPasserBonus;
+                TRACE(IDX(ProtectedPasserBonus), sign);
             }
         }
     }
@@ -362,9 +261,11 @@ Score evaluate_pawn_structure_basic(const Position& pos, Color us) {
 // Passed Pawn Piece-Dependent Bonuses (NOT cacheable)
 // ============================================================================
 
-Score evaluate_passed_pawn_pieces(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_passed_pawn_pieces(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     Bitboard our_pawns = pos.pieces(us, PAWN);
     Bitboard their_pawns = pos.pieces(them, PAWN);
@@ -385,22 +286,24 @@ Score evaluate_passed_pawn_pieces(const Position& pos, Color us) {
         Square front_sq = sq + pawn_push(us);
         if (front_sq >= SQ_A1 && front_sq <= SQ_H8) {
             if (pos.piece_on(front_sq) != NO_PIECE) {
-                // Subtract half the base bonus (cached function added full bonus)
-                Score base = PassedPawnBonus[rel_rank];
-                score -= Score(base.mg / 2, base.eg / 2);
+                // Takes back part of the base bonus the cached function added
+                score += params.BlockedPasserPenalty[rel_rank];
+                TRACE(IDX(BlockedPasserPenalty) + rel_rank, sign);
             }
 
             // King proximity bonus in endgame - enemy king far is good
             Square enemy_king = pos.king_square(them);
             int enemy_king_dist = std::abs(file_of(sq) - file_of(enemy_king)) +
                                   std::abs(rank_of(front_sq) - rank_of(enemy_king));
-            score += S(0, enemy_king_dist * 3);
+            score += params.PasserEnemyKingDistance * enemy_king_dist;
+            TRACE(IDX(PasserEnemyKingDistance), sign * enemy_king_dist);
 
             // Our king close to passed pawn in endgame is good
             Square our_king = pos.king_square(us);
             int our_king_dist = std::abs(file_of(sq) - file_of(our_king)) +
                                 std::abs(rank_of(sq) - rank_of(our_king));
-            score += S(0, (8 - our_king_dist) * 2);
+            score += params.PasserOwnKingProximity * (8 - our_king_dist);
+            TRACE(IDX(PasserOwnKingProximity), sign * (8 - our_king_dist));
         }
 
         // Rook behind passed pawn bonus
@@ -412,7 +315,8 @@ Score evaluate_passed_pawn_pieces(const Position& pos, Color us) {
             Bitboard behind_span = ~ForwardRanksBB[us][r] & ~rank_bb(r) & file_mask;
 
             if (our_rooks & behind_span) {
-                score += RookBehindPasserBonus;
+                score += params.RookBehindPasserBonus;
+                TRACE(IDX(RookBehindPasserBonus), sign);
             }
         }
     }
@@ -445,9 +349,11 @@ constexpr int SAFETY_TABLE[100] = {
   900, 900, 900, 900, 900, 900, 900, 900, 900, 900
 };
 
-Score evaluate_king_safety(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_king_safety(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     Square king_sq = pos.king_square(us);
     File king_file = file_of(king_sq);
@@ -467,7 +373,8 @@ Score evaluate_king_safety(const Position& pos, Color us) {
         if (king_file < FILE_H) shield_zone |= square_bb(make_square(File(king_file + 1), shield_rank));
 
         int shield_pawns = popcount(our_pawns & shield_zone);
-        score += PawnShieldBonus * shield_pawns;
+        score += params.PawnShieldBonus * shield_pawns;
+        TRACE(IDX(PawnShieldBonus), sign * shield_pawns);
 
         // Extra bonus for second rank shield (more protective)
         Rank shield_rank2 = (us == WHITE) ? Rank(king_rank + 2) : Rank(king_rank - 2);
@@ -477,7 +384,8 @@ Score evaluate_king_safety(const Position& pos, Color us) {
             shield_zone2 |= square_bb(make_square(king_file, shield_rank2));
             if (king_file < FILE_H) shield_zone2 |= square_bb(make_square(File(king_file + 1), shield_rank2));
             int shield_pawns2 = popcount(our_pawns & shield_zone2);
-            score += S(5, 0) * shield_pawns2;  // Smaller bonus for 2nd row
+            score += params.PawnShield2Bonus * shield_pawns2;  // Smaller bonus for 2nd row
+            TRACE(IDX(PawnShield2Bonus), sign * shield_pawns2);
         }
     }
 
@@ -491,9 +399,11 @@ Score evaluate_king_safety(const Position& pos, Color us) {
         bool their_pawn_on_file = (their_pawns & file_mask) != 0;
 
         if (!our_pawn_on_file && !their_pawn_on_file) {
-            score += OpenFileNearKingPenalty;
+            score += params.OpenFileNearKingPenalty;
+            TRACE(IDX(OpenFileNearKingPenalty), sign);
         } else if (!our_pawn_on_file) {
-            score += SemiOpenFileNearKingPenalty;
+            score += params.SemiOpenFileNearKingPenalty;
+            TRACE(IDX(SemiOpenFileNearKingPenalty), sign);
         }
     }
 
@@ -558,11 +468,15 @@ Score evaluate_king_safety(const Position& pos, Color us) {
         attack_units = attack_units * attacker_count / 2;  // Scale up for multiple attackers
     }
 
+    // Not tuned: the trace records this as its fixed nonlinear part
+    Score attack_penalty = S(0, 0);
     if (attack_units > 0 && attack_units < 100) {
-        score -= S(SAFETY_TABLE[attack_units], SAFETY_TABLE[attack_units] / 4);
+        attack_penalty = S(SAFETY_TABLE[attack_units], SAFETY_TABLE[attack_units] / 4);
     } else if (attack_units >= 100) {
-        score -= S(900, 225);  // Maximum penalty
+        attack_penalty = S(900, 225);  // Maximum penalty
     }
+    score -= attack_penalty;
+    if constexpr (Trace) trace->nonlinear -= attack_penalty * sign;
 
     return score;
 }
@@ -571,9 +485,11 @@ Score evaluate_king_safety(const Position& pos, Color us) {
 // Mobility Evaluation
 // ============================================================================
 
-Score evaluate_mobility(const Position& pos, Color us) {
+template<bool Trace>
+Score evaluate_mobility(const Position& pos, Color us, EvalTrace* trace) {
     Score score = S(0, 0);
     Color them = ~us;
+    const int sign = trace_sign(us);
 
     Bitboard occupied = pos.pieces();
     Bitboard our_pieces = pos.pieces(us);
@@ -592,7 +508,9 @@ Score evaluate_mobility(const Position& pos, Color us) {
     while (knights) {
         Square sq = pop_lsb(knights);
         Bitboard attacks = attacks_bb<KNIGHT>(sq) & safe_squares & ~our_pieces;
-        score += KnightMobility * popcount(attacks);
+        int mob = popcount(attacks);
+        score += params.KnightMobility * mob;
+        TRACE(IDX(KnightMobility), sign * mob);
     }
 
     // Bishop mobility
@@ -600,7 +518,9 @@ Score evaluate_mobility(const Position& pos, Color us) {
     while (bishops) {
         Square sq = pop_lsb(bishops);
         Bitboard attacks = attacks_bb<BISHOP>(sq, occupied) & safe_squares & ~our_pieces;
-        score += BishopMobility * popcount(attacks);
+        int mob = popcount(attacks);
+        score += params.BishopMobility * mob;
+        TRACE(IDX(BishopMobility), sign * mob);
     }
 
     // Rook mobility and file evaluation
@@ -611,7 +531,8 @@ Score evaluate_mobility(const Position& pos, Color us) {
         Square sq = pop_lsb(rooks);
         Bitboard attacks = attacks_bb<ROOK>(sq, occupied) & ~our_pieces;
         int mob = popcount(attacks & safe_squares);
-        score += RookMobility * mob;
+        score += params.RookMobility * mob;
+        TRACE(IDX(RookMobility), sign * mob);
 
         // Rook on open/semi-open file
         File f = file_of(sq);
@@ -619,16 +540,19 @@ Score evaluate_mobility(const Position& pos, Color us) {
 
         if (!(our_pawns & file_mask)) {
             if (!(their_pawns & file_mask)) {
-                score += RookOnOpenFile;
+                score += params.RookOnOpenFile;
+                TRACE(IDX(RookOnOpenFile), sign);
             } else {
-                score += RookOnSemiOpenFile;
+                score += params.RookOnSemiOpenFile;
+                TRACE(IDX(RookOnSemiOpenFile), sign);
             }
         }
 
         // Rook on 7th rank
         Rank rel_rank = relative_rank(us, sq);
         if (rel_rank == RANK_7) {
-            score += RookOn7thRank;
+            score += params.RookOn7thRank;
+            TRACE(IDX(RookOn7thRank), sign);
         }
     }
 
@@ -637,7 +561,9 @@ Score evaluate_mobility(const Position& pos, Color us) {
     while (queens) {
         Square sq = pop_lsb(queens);
         Bitboard attacks = attacks_bb<QUEEN>(sq, occupied) & safe_squares & ~our_pieces;
-        score += QueenMobility * popcount(attacks);
+        int mob = popcount(attacks);
+        score += params.QueenMobility * mob;
+        TRACE(IDX(QueenMobility), sign * mob);
     }
 
     return score;
@@ -647,13 +573,15 @@ Score evaluate_mobility(const Position& pos, Color us) {
 // Main Evaluation Function
 // ============================================================================
 
-Value evaluate(const Position& pos) {
+template<bool Trace>
+Value evaluate_impl(const Position& pos, EvalTrace* trace) {
     Score score = S(0, 0);
     Color us = pos.side_to_move();
     Color them = ~us;
 
     // Check for insufficient material draws (K vs K, K+B vs K, K+N vs K)
     if (pos.count<ALL_PIECES>() <= 3 && !pos.pieces(PAWN) && !pos.pieces(ROOK) && !pos.pieces(QUEEN)) {
+        if constexpr (Trace) trace->scale = 0;
         return VALUE_DRAW;
     }
 
@@ -661,26 +589,32 @@ Value evaluate(const Position& pos) {
     int phase = calculate_phase(pos);
 
     // Material evaluation
-    score += evaluate_material(pos, us);
+    score += evaluate_material<Trace>(pos, us, trace);
 
     // Piece-square table evaluation
-    score += evaluate_pst(pos, us);
+    score += evaluate_pst<Trace>(pos, us, trace);
 
-    // Pawn structure (with hash table for basic pawn-only features)
-    Key pk = pos.pawn_key();
-    int pawn_idx = pk & (PAWN_HASH_SIZE - 1);
-    PawnHashEntry& pe = pawn_hash_table[pawn_idx];
-
+    // Pawn structure (with hash table for basic pawn-only features). The trace
+    // bypasses the hash so the pawn terms are always recorded.
     Score pawn_white, pawn_black;
-    if (pe.key == pk) {
-        pawn_white = pe.scores[WHITE];
-        pawn_black = pe.scores[BLACK];
+    if constexpr (Trace) {
+        pawn_white = evaluate_pawn_structure_basic<true>(pos, WHITE, trace);
+        pawn_black = evaluate_pawn_structure_basic<true>(pos, BLACK, trace);
     } else {
-        pawn_white = evaluate_pawn_structure_basic(pos, WHITE);
-        pawn_black = evaluate_pawn_structure_basic(pos, BLACK);
-        pe.key = pk;
-        pe.scores[WHITE] = pawn_white;
-        pe.scores[BLACK] = pawn_black;
+        Key pk = pos.pawn_key();
+        int pawn_idx = pk & (PAWN_HASH_SIZE - 1);
+        PawnHashEntry& pe = pawn_hash_table[pawn_idx];
+
+        if (pe.key == pk) {
+            pawn_white = pe.scores[WHITE];
+            pawn_black = pe.scores[BLACK];
+        } else {
+            pawn_white = evaluate_pawn_structure_basic<false>(pos, WHITE, trace);
+            pawn_black = evaluate_pawn_structure_basic<false>(pos, BLACK, trace);
+            pe.key = pk;
+            pe.scores[WHITE] = pawn_white;
+            pe.scores[BLACK] = pawn_black;
+        }
     }
 
     if (us == WHITE)
@@ -689,24 +623,29 @@ Value evaluate(const Position& pos) {
         score += pawn_black - pawn_white;
 
     // Piece-dependent passed pawn adjustments (not cached)
-    score += evaluate_passed_pawn_pieces(pos, us);
-    score -= evaluate_passed_pawn_pieces(pos, them);
+    score += evaluate_passed_pawn_pieces<Trace>(pos, us, trace);
+    score -= evaluate_passed_pawn_pieces<Trace>(pos, them, trace);
 
     // King safety (weighted more heavily in middlegame)
-    Score king_safety_us = evaluate_king_safety(pos, us);
-    Score king_safety_them = evaluate_king_safety(pos, them);
+    Score king_safety_us = evaluate_king_safety<Trace>(pos, us, trace);
+    Score king_safety_them = evaluate_king_safety<Trace>(pos, them, trace);
     score += king_safety_us;
     score -= king_safety_them;
 
     // Mobility
-    score += evaluate_mobility(pos, us);
-    score -= evaluate_mobility(pos, them);
+    score += evaluate_mobility<Trace>(pos, us, trace);
+    score -= evaluate_mobility<Trace>(pos, them, trace);
 
     // Taper the score based on game phase
     Value tapered = taper_score(score, phase);
 
-    // Tempo bonus for side to move - TUNED
-    tapered += 13;
+    // Tempo bonus for side to move
+    tapered += params.Tempo;
+
+    if constexpr (Trace) {
+        trace->phase = phase;
+        trace->tempo = trace_sign(us);
+    }
 
     // Endgame scale factors for drawish positions
     if (std::abs(tapered) > 0) {
@@ -742,12 +681,26 @@ Value evaluate(const Position& pos) {
             }
         }
 
+        if constexpr (Trace) trace->scale = scale;
+
         if (scale != 128) {
             tapered = Value(tapered * scale / 128);
         }
     }
 
     return tapered;
+}
+
+#undef TRACE
+#undef IDX
+
+Value evaluate(const Position& pos) {
+    return evaluate_impl<false>(pos, nullptr);
+}
+
+Value evaluate_trace(const Position& pos, EvalTrace& trace) {
+    trace = EvalTrace();
+    return evaluate_impl<true>(pos, &trace);
 }
 
 // ============================================================================

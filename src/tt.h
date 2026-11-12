@@ -19,7 +19,7 @@
 //   value    (2 bytes) - search score
 //   staticEval (2 bytes) - static evaluation
 //   depth    (1 byte)  - search depth
-//   genBound (1 byte)  - generation (6 bits) + bound type (2 bits)
+//   genBound (1 byte)  - generation (high 6 bits, kept in place) + bound type (2 bits)
 
 struct TTEntry {
 
@@ -33,7 +33,7 @@ struct TTEntry {
     bool key_matches(Key k) const { return key16 == uint16_t(k); }
 
     // Get the generation (age) of this entry
-    uint8_t generation() const { return genBound8 >> 2; }
+    uint8_t generation() const { return genBound8 & 0xFC; }
 
     // Save data to this entry
     void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t gen) {
@@ -46,14 +46,14 @@ struct TTEntry {
         // unless the new entry is exact or from a new generation
         if (b == BOUND_EXACT
             || key16 != uint16_t(k)
-            || d + 4 > depth8
+            || d - DEPTH_NONE + 4 > depth8
             || gen != generation()) {
 
             key16       = uint16_t(k);
             value16     = int16_t(v);
             staticEval16 = int16_t(ev);
             depth8      = uint8_t(d - DEPTH_NONE);
-            genBound8   = uint8_t((gen << 2) | b);
+            genBound8   = uint8_t(gen | b);  // gen is a multiple of 4
         }
     }
 

@@ -580,6 +580,9 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     const bool root_node = (ss->ply == 0);
     const bool pv_node = (beta - alpha > 1);
     const Value original_alpha = alpha;  // Save for TT bound determination
+    // Singular extension verification search: same position, one move excluded.
+    // It must not use or overwrite this position's TT entry, or prune the node.
+    const bool excluded = ss->excluded_move != MOVE_NONE;
     bool in_check = bool(pos.checkers());
     ss->in_check = in_check;
     ss->pv_length = 0;
@@ -633,7 +636,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         tt_bound = tte->bound();
 
         // Use TT cutoff in non-PV nodes
-        if (!pv_node && tt_depth >= depth) {
+        if (!pv_node && !excluded && tt_depth >= depth) {
             if ((tt_bound == BOUND_EXACT) ||
                 (tt_bound == BOUND_LOWER && tt_value >= beta) ||
                 (tt_bound == BOUND_UPPER && tt_value <= alpha)) {
@@ -676,7 +679,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     // ========================================================================
     // Razoring
     // ========================================================================
-    if (!pv_node && !in_check && depth <= RAZOR_MAX_DEPTH && depth >= 1) {
+    if (!pv_node && !in_check && !excluded && depth <= RAZOR_MAX_DEPTH && depth >= 1) {
         Value razor_margin = RAZOR_MARGIN_BASE + RAZOR_MARGIN_PER_DEPTH * depth;
         if (static_eval + razor_margin <= alpha) {
             Value razor_value = qsearch(pos, ss, alpha, beta);
@@ -702,7 +705,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     // ========================================================================
     // When improving: margin = 80/depth (prune more, position is reliably good)
     // When not improving: margin = 120/depth (prune less, eval less trustworthy)
-    if (!pv_node && !in_check && depth <= 5 &&
+    if (!pv_node && !in_check && !excluded && depth <= 5 &&
         static_eval - (improving ? 80 : 120) * depth >= beta &&
         static_eval < VALUE_KNOWN_WIN) {
         return static_eval;
@@ -713,6 +716,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     // ========================================================================
     if (!pv_node &&
         !in_check &&
+        !excluded &&
         depth >= NULL_MOVE_MIN_DEPTH &&
         static_eval >= beta &&
         pos.non_pawn_material(pos.side_to_move()) > VALUE_ZERO &&
@@ -746,7 +750,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     // Probcut - If a shallow search with raised beta confirms we're far
     // above beta, prune. Only for non-PV nodes at moderate depth.
     // ========================================================================
-    if (!pv_node && !in_check && depth >= 5 &&
+    if (!pv_node && !in_check && !excluded && depth >= 5 &&
         std::abs(beta) < VALUE_MATE_IN_MAX_PLY) {
 
         Value probcut_beta = beta + 200;
@@ -914,10 +918,13 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
 
         // Singular extension: if the TT move is significantly better than
         // all alternatives, extend its search
-        if (depth >= 8 && m == tt_move && !ss->excluded_move &&
-            tte && (tte->bound() & BOUND_LOWER) && tte->depth() >= depth - 3) {
+        // Use the values saved at the probe: tte may since have been
+        // overwritten by a child search storing into the same cluster.
+        if (depth >= 8 && m == tt_move && !excluded &&
+            ss->ply < 2 * search_info.depth &&  // keep extensions from compounding
+            (tt_bound & BOUND_LOWER) && tt_depth >= depth - 3 &&
+            std::abs(tt_value) < VALUE_KNOWN_WIN) {
 
-            Value tt_value = value_from_tt(tte->score(), ss->ply);
             Value singular_beta = tt_value - 2 * depth;
 
             ss->excluded_move = m;
@@ -1066,7 +1073,7 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     }
 
     // Learn the eval error for this pawn structure from quiet, trustworthy results
-    if (!in_check && !ss->excluded_move && std::abs(best_value) < VALUE_KNOWN_WIN
+    if (!in_check && !excluded && std::abs(best_value) < VALUE_KNOWN_WIN
         && (!best_move || !pos.capture(best_move))
         && !(bound == BOUND_LOWER && best_value <= static_eval)
         && !(bound == BOUND_UPPER && best_value >= static_eval)) {
@@ -1074,7 +1081,9 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                                         int(best_value - raw_eval));
     }
 
-    TT.store(pos_key, value_to_tt(best_value, ss->ply), bound, Depth(depth), best_move, raw_eval);
+    if (!excluded) {
+        TT.store(pos_key, value_to_tt(best_value, ss->ply), bound, Depth(depth), best_move, raw_eval);
+    }
 
     return best_value;
 }

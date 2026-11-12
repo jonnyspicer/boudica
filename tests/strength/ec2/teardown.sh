@@ -5,7 +5,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STATE="$HERE/state.env"
+STATE="${STATE:-$HERE/state.env}"  # set STATE to run more than one box
 [[ -f "$STATE" ]] || { echo "no $STATE: nothing to tear down" >&2; exit 1; }
 source "$STATE"
 aws() { command aws --region "$REGION" "$@"; }

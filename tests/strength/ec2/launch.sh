@@ -11,7 +11,8 @@
 #
 # Usage: tests/strength/ec2/launch.sh
 # Env:   MARKET (spot|ondemand), REGION (us-east-1), INSTANCE_TYPE (c7a.4xlarge), MAX_PRICE (0.40 USD/h),
-#        MAX_HOURS (72, the instance shuts itself down after this), PUBKEY (~/.ssh/id_ed25519.pub)
+#        MAX_HOURS (72, the instance shuts itself down after this), PUBKEY (~/.ssh/id_ed25519.pub),
+#        STATE (ec2/state.env; use another file per extra box, and pass the same STATE to teardown.sh)
 set -euo pipefail
 
 MARKET="${MARKET:-spot}"
@@ -22,7 +23,7 @@ MAX_HOURS="${MAX_HOURS:-72}"
 PUBKEY="${PUBKEY:-$HOME/.ssh/id_ed25519.pub}"
 NAME="boudica-gauntlet"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-STATE="$HERE/state.env"
+STATE="${STATE:-$HERE/state.env}"  # set STATE to run more than one box
 aws() { command aws --region "$REGION" "$@"; }
 
 [[ ! -f "$STATE" ]] || { echo "$STATE exists: an instance may already be running (run teardown.sh first)" >&2; exit 1; }

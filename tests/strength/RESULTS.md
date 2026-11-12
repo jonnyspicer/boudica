@@ -12,6 +12,32 @@ Method: `docs/strength-testing-plan.md`. Newest entries at the bottom.
 
 | Date | Dev commit | Dev Bench | Base Bench | Change | Bounds | TC | Games | LLR | Elo ± | Result |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 2026-11-12 | c9d0387 (#12) | 8785978 | 9771570 | TT generation/bound packing fix | [-3, 1] | 10+0.1 | 3354 | 2.94 | +18.0 ± 8.3 | H1, merged |
+| 2026-11-12 | 1e42fc2 (#20) | 9930513 | 8785978 | Pawn-key correction history | [0, 5] | 10+0.1 | 956 | 2.95 | +61.3 ± 16.8 | H1, merged |
+| 2026-11-12 | 72998fc (#22) | 9930513 | 9930513 | Stop at a hard time limit, not the soft target | [0, 5] | 10+0.1 | 1158 | 2.96 | +45.6 ± 13.8 | H1, merged |
+| 2026-11-12 | 8d518e3 | 8320792 | 8785978 | Capture history | [0, 5] | 10+0.1 | 5838 | -1.42 | -2.4 ± 6.3 | Stopped by hand to re-run on new main |
+
+Runs on 2026-11-12 that ended without a verdict are not in the table:
+- **Spot interruptions:** these restarted the running test from game 0 until #21 added resume.
+- **The stdout race:** fixed in #19. About one search in 1,500 lost its output and fastchess stopped the tournament.
+
+  | Branch | Games | Elo when stopped |
+  |---|---|---|
+  | fix-singular | 2970 | +15.5 ± 9.0 |
+  | time-soft-hard | 936 | +38.4 ± 16.0 |
+  | qsearch-tt | 1350 | +29.4 ± 13.2 |
+  | lmr-adjust | 812 | +10.3 ± 17.4 |
+
+  All four are queued again on the current main.
+
+## EC2 spend
+
+The weekly budget is $50. The gauntlets on 2026-11-09 and 2026-11-11 were approved separately.
+
+| Week of | Box | Type | Hours | ≈ Cost |
+|---|---|---|---|---|
+| 2026-11-09 | SPRT queue (from 2026-11-12 11:01Z) | c7a.8xlarge spot, $0.49–0.67/h | ~7.5 to 18:30Z | ~$4.5 |
+| 2026-11-09 | Datagen (2026-11-12 12:57Z to 18:25Z, terminated) | c7a.8xlarge spot | ~5 | ~$3 |
 
 ## Gauntlets
 

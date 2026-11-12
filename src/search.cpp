@@ -63,6 +63,7 @@ static int usable_clock_time(int time_left, int moves_to_go) {
 void TimeManager::init(const SearchLimits& limits, Color us) {
     start_time = Clock::now();
     last_check = 0;
+    node_limit = limits.nodes > 0 ? uint64_t(limits.nodes) : 0;
 
     if (limits.movetime > 0) {
         // Fixed time per move - use 90% of allocated for safety margin
@@ -87,7 +88,7 @@ void TimeManager::init(const SearchLimits& limits, Color us) {
 
         // Minimum allocation - 10ms
         allocated_time = std::max(allocated_time, static_cast<uint64_t>(10));
-    } else if (limits.infinite || limits.depth > 0) {
+    } else if (limits.infinite || limits.depth > 0 || limits.nodes > 0) {
         // Infinite or depth-limited search
         allocated_time = UINT64_MAX;
         max_time = UINT64_MAX;
@@ -99,6 +100,11 @@ void TimeManager::init(const SearchLimits& limits, Color us) {
 }
 
 bool TimeManager::should_stop(uint64_t nodes) const {
+    // "go nodes N": stop as soon as the budget is spent, not after the iteration
+    if (node_limit && nodes >= node_limit) {
+        return true;
+    }
+
     // Check time periodically (every 1024 nodes is sufficient)
     if (nodes - last_check < 1024) {
         return false;

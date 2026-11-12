@@ -2,6 +2,7 @@
 #define SEARCH_H
 
 #include "types.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <vector>
@@ -69,7 +70,28 @@ struct MoveOrderingTables {
     // Tracks piece-to-square correlations across consecutive moves
     int continuation_history[PIECE_NB][SQUARE_NB][PIECE_NB][SQUARE_NB];
 
+    // Static eval correction history, indexed by [side to move][pawn key].
+    // Learns how far search results land from the static eval for each pawn
+    // structure; entries are in 1/CORR_GRAIN centipawns.
+    static constexpr int CORR_SIZE = 16384;
+    static constexpr int CORR_GRAIN = 256;
+    static constexpr int CORR_MAX = 64 * CORR_GRAIN;
+    int correction[COLOR_NB][CORR_SIZE];
+
+    int eval_correction(Color c, Key pawn_key) const {
+        return correction[c][pawn_key % CORR_SIZE] / CORR_GRAIN;
+    }
+
+    // Move the entry towards diff (search result minus raw eval), weighted by depth
+    void update_correction(Color c, Key pawn_key, int depth, int diff) {
+        int& e = correction[c][pawn_key % CORR_SIZE];
+        int w = std::min(depth * depth + 2 * depth + 1, 128);
+        e = (e * (256 - w) + diff * CORR_GRAIN * w) / 256;
+        e = std::clamp(e, -CORR_MAX, CORR_MAX);
+    }
+
     void clear() {
+        std::memset(correction, 0, sizeof(correction));
         std::memset(killers, 0, sizeof(killers));
         std::memset(history, 0, sizeof(history));
         std::memset(countermoves, 0, sizeof(countermoves));

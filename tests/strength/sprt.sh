@@ -29,6 +29,7 @@ echo "dev Bench: $dev_bench  base Bench: $base_bench  bounds [$ELO0, $ELO1]  tc 
     -config outname="$OUT/config.json" \
     -pgnout file="$OUT/games.pgn" \
     | tee "$OUT/fastchess.log"
+touch "$OUT/done"
 
 # Resume an interrupted run with:
 #   fastchess -config file=$OUT/config.json

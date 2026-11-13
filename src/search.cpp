@@ -657,7 +657,9 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     if (in_check) {
         static_eval = raw_eval = VALUE_NONE;
     } else {
-        raw_eval = Eval::evaluate(pos);
+        // The TT stores the raw eval, so a hit saves an evaluation
+        Value tt_eval = tt_hit ? tte->static_eval() : VALUE_NONE;
+        raw_eval = tt_eval != VALUE_NONE ? tt_eval : Eval::evaluate(pos);
         static_eval = corrected_eval(pos, raw_eval);
     }
     ss->static_eval = static_eval;

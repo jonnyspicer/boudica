@@ -817,6 +817,8 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
     Move best_move = MOVE_NONE;
     Value best_value = mated_in(ss->ply);
     int moves_searched = 0;
+    Move quiets_searched[MAX_MOVES];
+    int quiet_count = 0;
 
     for (int i = 0; i < move_count; ++i) {
         // Extra time check at each move in the loop for safety
@@ -961,6 +963,8 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         Piece moved_piece = pos.piece_on(from_sq(m));
         Square moved_to = to_sq(m);
         pos.do_move(m, st);
+        if (!is_capture && !is_promotion)
+            quiets_searched[quiet_count++] = m;
 
         moves_searched++;
         ss->current_move = m;
@@ -1042,10 +1046,10 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
                                 moved_piece, moved_to, bonus);
                         }
 
-                        // Penalize other quiet moves that didn't cause cutoff
-                        for (int j = 0; j < i; ++j) {
-                            Move prev = scored_moves[j].move;
-                            if (!pos.capture(prev)) {
+                        // Penalize the other quiet moves searched before this one
+                        for (int j = 0; j < quiet_count; ++j) {
+                            Move prev = quiets_searched[j];
+                            if (prev != m) {
                                 move_ordering.update_history(pos.side_to_move(), prev, -bonus);
                                 // Also penalize in continuation history
                                 if ((ss - 1)->moved_piece != NO_PIECE) {

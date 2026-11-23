@@ -16,6 +16,17 @@ Method: `docs/strength-testing-plan.md`. Newest entries at the bottom.
 | 2026-11-12 | 1e42fc2 (#20) | 9930513 | 8785978 | Pawn-key correction history | [0, 5] | 10+0.1 | 956 | 2.95 | +61.3 ± 16.8 | H1, merged |
 | 2026-11-12 | 72998fc (#22) | 9930513 | 9930513 | Stop at a hard time limit, not the soft target | [0, 5] | 10+0.1 | 1158 | 2.96 | +45.6 ± 13.8 | H1, merged |
 | 2026-11-12 | 8d518e3 | 8320792 | 8785978 | Capture history | [0, 5] | 10+0.1 | 5838 | -1.42 | -2.4 ± 6.3 | Stopped by hand to re-run on new main |
+| 2026-11-12 | 39b32cc (#25) | 8744851 | — | Texel tune 1 (73k games) | [0, 5] | 10+0.1 | — | — | +64.6 ± 18.0 | H1, merged |
+| 2026-11-12 | d7fe518 (#26) | 6847405 | — | TT probe in qsearch | [0, 5] | 10+0.1 | 3880 | 2.98 | +14.8 ± 7.7 | H1, merged |
+| 2026-11-12 | f5a0e02 (#27) | 21832786 | — | Singular extension fix | [0, 5] | 10+0.1 | 2444 | 2.95 | +24.9 ± 9.6 | H1, merged |
+| 2026-11-12 | beffefa (#29) | 20961535 | — | LMR adjustments | [0, 5] | 10+0.1 | 10150 | 2.98 | +6.8 ± 4.8 | H1, merged |
+| 2026-11-12 | 995cbd4 (#30) | 22127970 | — | Texel tune 2 | [0, 5] | 10+0.1 | 1236 | 2.95 | +44.9 ± 14.3 | H1, merged |
+| 2026-11-13 | cont-hist-2 | — | — | Continuation history | [0, 5] | 10+0.1 | ~138000 | — | ≈ 0 | No verdict after 33 h; abandoned, led to the 20k cap (#31) |
+| 2026-11-23 | efad24d (#32) | 22505789 | 22127970 | Reuse TT static eval | [0, 5] | 10+0.1 | 6332 | 2.96 | +9.3 ± 5.8 | H1, merged |
+| 2026-11-23 | ed16457 (#33) | 22558697 | 22127970 | History malus only on searched quiets | [-3, 1] | 10+0.1 | 11226 | 2.95 | +4.6 ± 4.3 | H1, merged |
+| 2026-11-23 | a3f1431 (#34) | 22634871 | 22505789 | cut_node propagation fix | [-3, 1] | 10+0.1 | 12340 | 2.95 | +4.1 ± 4.1 | H1, merged |
+| 2026-11-23 | c55606b (#35) | 20919619 | 19891997 | No-pawn endgame scale + mop-up | [-3, 1] | 10+0.1 | 2608 | 2.95 | +16.1 ± 6.3 | H1, merged |
+| 2026-11-23 | texel-tune-3 | 22570555 | 18397157 | Texel tune 3 (17.9M positions, MSE 0.09932 → 0.09917) | [0, 5] | 10+0.1 | 13464 | -2.95 | -2.0 ± 4.1 | H0, not merged |
 
 Runs on 2026-11-12 that ended without a verdict are not in the table:
 - **Spot interruptions:** these restarted the running test from game 0 until #21 added resume.
@@ -38,6 +49,9 @@ The weekly budget is $50. The gauntlets on 2026-11-09 and 2026-11-11 were approv
 |---|---|---|---|---|
 | 2026-11-09 | SPRT queue (from 2026-11-12 11:01Z) | c7a.8xlarge spot, $0.49–0.67/h | ~7.5 to 18:30Z | ~$4.5 |
 | 2026-11-09 | Datagen (2026-11-12 12:57Z to 18:25Z, terminated) | c7a.8xlarge spot | ~5 | ~$3 |
+| 2026-11-09 | SPRT queue and datagen, 2026-11-12 to 2026-11-14 (incl. cont-hist-2's 33 h) | c7a.8xlarge spot/on-demand | — | ~$40 (estimate) |
+| 2026-11-23 | SPRT queue, 11:52Z to 23:05Z, terminated | c7a.8xlarge on-demand, ~$1.64/h | ~11.2 | ~$18.4 |
+| 2026-11-23 | Old spot box i-02af2950bf36c88a6, stopped | EBS only | — | a few $/month |
 
 ## Gauntlets
 

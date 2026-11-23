@@ -982,11 +982,14 @@ Value search(Position& pos, SearchStack* ss, int depth, Value alpha, Value beta,
         // Principal Variation Search (PVS)
         // ====================================================================
         if (moves_searched == 1) {
-            // First move: full window search
-            value = -search(pos, ss + 1, extended_depth, -beta, -alpha, false);
+            // First move: full window search. Node types alternate, so outside
+            // the PV the first child of a cut node is an all node and vice versa.
+            value = -search(pos, ss + 1, extended_depth, -beta, -alpha, !pv_node && !cut_node);
         } else {
-            // Reduced depth search with null window
-            value = -search(pos, ss + 1, extended_depth - reduction, -alpha - 1, -alpha, true);
+            // Reduced depth search with null window. A reduced search expects to
+            // fail high (cut node); an unreduced one alternates like the first move.
+            value = -search(pos, ss + 1, extended_depth - reduction, -alpha - 1, -alpha,
+                            reduction > 0 || !cut_node);
 
             // If reduced search beat alpha, re-search at full depth
             if (value > alpha && reduction > 0) {

@@ -7,6 +7,7 @@
 #   --with-tb    also download 3-4-5 piece Syzygy tablebases (~1 GB, gauntlets only)
 #   --with-sf10  also build Stockfish 10 for time-control scaling (gauntlets only)
 #   --with-rust  also install cargo (Ubuntu package) for Rust anchor engines
+#   --with-go    also install Go (Ubuntu package) for Go anchor engines
 set -euo pipefail
 
 CHESS_DIR="${CHESS_DIR:-/opt/chess}"
@@ -16,12 +17,13 @@ RUST_VERSION="1.91"
 BOOKS_URL="https://github.com/official-stockfish/books/raw/master"
 SYZYGY_URL="https://tablebase.lichess.ovh/tables/standard"
 
-WITH_TB=0; WITH_SF10=0; WITH_RUST=0
+WITH_TB=0; WITH_SF10=0; WITH_RUST=0; WITH_GO=0
 for arg in "$@"; do
     case "$arg" in
         --with-tb) WITH_TB=1 ;;
         --with-sf10) WITH_SF10=1 ;;
         --with-rust) WITH_RUST=1 ;;
+        --with-go) WITH_GO=1 ;;
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
 done
@@ -40,6 +42,11 @@ if [[ $WITH_RUST -eq 1 ]]; then
     apt-get install -y -qq "cargo-$RUST_VERSION" >/dev/null
     ln -sf "/usr/lib/rust-$RUST_VERSION/bin/cargo" "/usr/lib/rust-$RUST_VERSION/bin/rustc" /usr/local/bin/
     echo "$(cargo --version)" >> "$CHESS_DIR/versions.txt"
+fi
+
+if [[ $WITH_GO -eq 1 ]]; then
+    apt-get install -y -qq golang-go >/dev/null
+    echo "$(go version)" >> "$CHESS_DIR/versions.txt"
 fi
 
 # fastchess: SPRT and gauntlet runner

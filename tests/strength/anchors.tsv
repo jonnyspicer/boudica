@@ -25,7 +25,7 @@ cinnamon	A	Cinnamon 2.5 64-bit	2336	2308	TBD	TBD	TBD	TBD	-
 tantabus	A	Tantabus 1.0.2 64-bit	2340	2331	https://github.com/analog-hors/tantabus.git	v1.0.2	cargo rustc --locked --release -p tantabus-uci -- -C target-cpu=x86-64-v2	target/release/tantabus-uci	-
 fatalii06	A	Fatalii 0.6.0 64-bit	2357	2317	https://github.com/FitzOReilly/fatalii.git	v0.6.0	cargo build --profile release-lto --bin fatalii	target/release-lto/fatalii	-
 wyldchess	B	WyldChess 1.51 64-bit	2679	2602	https://github.com/Mk-Chan/WyldChess.git	v1.51	cd src && make	src/wyldchess	-
-blunder760	B	Blunder 7.6.0 64-bit	2633	2618	https://github.com/algerbrex/blunder.git	v7.6.0	go build -o blunder blunder/main.go	blunder	-
+blunder760	B	Blunder 7.6.0 64-bit	2633	2618	https://github.com/algerbrex/blunder.git	v7.6.0	go build -o blunder-engine blunder/main.go	blunder-engine	-
 stash21	B	Stash 21.0 64-bit	-	2713	https://gitlab.com/mhouppin/stash-bot.git	v21.0	cd src && make	src/stash-bot	-
 zahak5	B	Zahak 5.0 64-bit	2687	2726	https://github.com/amanjpro/zahak.git	5.0	make	bin/zahak	-
 velvet120	B	Velvet 1.2.0 64-bit	2764	2764	https://github.com/mhonert/velvet-chess.git	v1.2.0	cargo build --release	target/release/velvet	-
@@ -34,5 +34,5 @@ weiawaga5	B	Weiawaga 5.0 64-bit	2871	2872	https://github.com/Heiaha/Weiawaga.git
 weiss10	B	Weiss 1.0 64-bit	2846	2896	https://github.com/TerjeKir/weiss.git	v1.0	cd src && make	src/weiss	-
 koivisto3	B	Koivisto 3.0 64-bit	2938	3020	https://github.com/Luecx/Koivisto.git	v3.0	mkdir -p bin && cd src_files && make	bin/Koivisto_3.0	-
 topple081	B	Topple 0.8.1 64-bit	3031	3035	https://github.com/konsolas/ToppleChess.git	v0.8.1	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make Topple	build/Topple	-
-blunder855	Bx	Blunder 8.5.5 64-bit	2693	2662	https://github.com/algerbrex/blunder.git	v8.5.5	go build -o blunder blunder/main.go	blunder	-
+blunder855	Bx	Blunder 8.5.5 64-bit	2693	2662	https://github.com/algerbrex/blunder.git	v8.5.5	go build -o blunder-engine blunder/main.go	blunder-engine	-
 asymptote08	Bx	Asymptote 0.8 64-bit	2938	2941	https://github.com/malu/asymptote.git	v0.8	cargo build --release	target/release/asymptote	-

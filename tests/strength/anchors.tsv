@@ -11,6 +11,7 @@
 # Cargo.lock at its tags, so its dependencies resolve to current versions (may differ slightly from the rated binary).
 # smallbrain 1.1.0's types.h uses uint8_t without <cstdint>; GCC 13 needs the include added (no behaviour change).
 # Rung B (2026-11-24): CCRL lists computed 2026-11-21, one version per engine family, blitz 2602-3035.
+# Halogen 8, like smallbrain, needs <cstdint> added for GCC 13 (no behaviour change).
 # Rung "Bx" rows are backups: build-anchors.sh B skips them; change the rung to B to use one.
 # Rung A blitz gauntlet uses: vice, mora11, smallbrain, fatalii05, sungorus, tantabus, fatalii06 (rated on both lists).
 vice	A	Vice 1.0 64-bit	1997	1977	https://github.com/maksimKorzh/chess_programming.git	1c9696c9459d	cd didactic_engines/Vice10/Vice10/Source && gcc -O3 xboard.c vice.c uci.c evaluate.c pvtable.c init.c bitboards.c hashkeys.c board.c data.c attack.c io.c movegen.c validate.c makemove.c perft.c search.c misc.c -o vice	didactic_engines/Vice10/Vice10/Source/vice	-
@@ -29,8 +30,8 @@ blunder760	B	Blunder 7.6.0 64-bit	2633	2618	https://github.com/algerbrex/blunder
 stash21	B	Stash 21.0 64-bit	-	2713	https://gitlab.com/mhouppin/stash-bot.git	v21.0	cd src && make	src/stash-bot	-
 zahak5	B	Zahak 5.0 64-bit	2687	2726	https://github.com/amanjpro/zahak.git	5.0	make	bin/zahak	-
 velvet120	B	Velvet 1.2.0 64-bit	2764	2764	https://github.com/mhonert/velvet-chess.git	v1.2.0	cargo build --release	target/release/velvet	-
-halogen8	B	Halogen 8 64-bit	2895	2826	https://github.com/KierenP/Halogen.git	v8	cd Halogen/src && make	Halogen/src/Halogen	-
-weiawaga5	B	Weiawaga 5.0 64-bit	2871	2872	https://github.com/Heiaha/Weiawaga.git	v5.0	cargo build --release	target/release/weiawaga	-
+halogen8	B	Halogen 8 64-bit	2895	2826	https://github.com/KierenP/Halogen.git	v8	grep -q cstdint Halogen/src/BitBoardDefine.h || sed -i '1i #include <cstdint>' Halogen/src/BitBoardDefine.h; cd Halogen/src && make	Halogen/src/Halogen	-
+weiawaga5	B	Weiawaga 5.0 64-bit	2871	2872	https://github.com/Heiaha/Weiawaga.git	v5.0	cargo build --release	target/release/Weiawaga	-
 weiss10	B	Weiss 1.0 64-bit	2846	2896	https://github.com/TerjeKir/weiss.git	v1.0	cd src && make	src/weiss	-
 koivisto3	B	Koivisto 3.0 64-bit	2938	3020	https://github.com/Luecx/Koivisto.git	v3.0	mkdir -p bin && cd src_files && make	bin/Koivisto_3.0	-
 topple081	B	Topple 0.8.1 64-bit	3031	3035	https://github.com/konsolas/ToppleChess.git	v0.8.1	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make Topple	build/Topple	-

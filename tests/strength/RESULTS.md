@@ -51,7 +51,10 @@ The weekly budget is $50. The gauntlets on 2026-11-09 and 2026-11-11 were approv
 | 2026-11-09 | Datagen (2026-11-12 12:57Z to 18:25Z, terminated) | c7a.8xlarge spot | ~5 | ~$3 |
 | 2026-11-09 | SPRT queue and datagen, 2026-11-12 to 2026-11-14 (incl. cont-hist-2's 33 h) | c7a.8xlarge spot/on-demand | — | ~$40 (estimate) |
 | 2026-11-23 | SPRT queue, 11:52Z to 23:05Z, terminated | c7a.8xlarge on-demand, ~$1.64/h | ~11.2 | ~$18.4 |
-| 2026-11-23 | Old spot box i-02af2950bf36c88a6, stopped | EBS only | — | a few $/month |
+| 2026-11-23 | Old spot box i-02af2950bf36c88a6, stopped, terminated 2026-11-25 | EBS only | — | under $1 |
+| 2026-11-23 | Rung B gauntlet, 2026-11-24 11:17Z to 22:17Z (OOM-stalled after 30 min, idle until the 11 h cap) and 2026-11-25 08:56Z to 15:25Z, terminated | c7a.8xlarge on-demand, ~$1.64/h | ~17.5 | ~$28.7 |
+
+Week of 2026-11-23 total: about $47.
 
 ## Gauntlets
 
@@ -83,3 +86,26 @@ The weekly budget is $50. The gauntlets on 2026-11-09 and 2026-11-11 were approv
 
 - **Caveat:** 91% against anchors rated 1977–2331 is far outside their range, so 2633 is an extrapolation. The ± 25 does not include the error from extrapolating. A rung B gauntlet with anchors around 2500–2800 is needed for a reliable number.
 - **Minor issue:** some `info` lines carry a PV well over 100 moves long, cycling between two king moves. The PV is probably rebuilt from the TT without a repetition or length check. It is cosmetic and does not affect play.
+
+### 2026-11-24/25: rung B blitz, main c55606b
+
+- **Bench:** 20631620. **Machine:** EC2 c7a.8xlarge on-demand, concurrency 31, scale f=0.783, TC 94.0+0.78, Hash 256, 3-4-5 TB, 8moves_v3 openings.
+- **Anchors:** wyldchess, blunder760, stash21, velvet120, halogen8, weiawaga5, weiss10, koivisto3, topple081, asymptote08 (300 games each). Zahak 5.0 and Blunder 8.5.5 replaced: see anchors.tsv.
+- **Result:** **2951 ± 11** CCRL blitz, 1928/3000 (64.3%). White advantage 13.7 ± 5.5, draw rate 39.9%. Up from 2633 on rung A, but that number was an extrapolation; this one is inside the anchors' range (2602–3035).
+
+| Anchor | CCRL blitz | Boudica score | % |
+|---|---|---|---|
+| topple081 | 3035 | 112/300 | 37.3% |
+| koivisto3 | 3020 | 138.5/300 | 46.2% |
+| asymptote08 | 2941 | 169.5/300 | 56.5% |
+| weiss10 | 2896 | 190/300 | 63.3% |
+| weiawaga5 | 2872 | 165/300 | 55.0% |
+| halogen8 | 2826 | 178/300 | 59.3% |
+| velvet120 | 2764 | 228/300 | 76.0% |
+| stash21 | 2713 | 249/300 | 83.0% |
+| blunder760 | 2618 | 256.5/300 | 85.5% |
+| wyldchess | 2602 | 241.5/300 | 80.5% |
+
+- **Problem 1, OOM:** fastchess keeps every engine it starts alive by default, one per worker per opponent (31 × 11 processes at 256 MB+ hash each). The 64 GB box ran out of memory after 226 games; an anchor was killed and fastchess hung until the 11 h shutdown cap. Fixed with `restart=on` in gauntlet.sh; the run resumed with memory flat at 17 GB.
+- **Problem 2, replayed games:** the resume replayed the first 226 games, so the PGN held 3226. Ordo was re-run without the 226 pre-crash games (2952.1 ± 10.2 with them, 2951.4 ± 10.9 without).
+- **Data lost:** the PGN and Ordo h2h file were not copied off before teardown (a failed scp followed by an unconditional teardown). The ratings table above is from the Ordo output captured during the run.

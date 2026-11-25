@@ -54,6 +54,9 @@ cat "$OUT/header.txt"
 # CCRL conditions: same hash for all, ponder off, engine books off, 3-4-5 TB
 # for every engine that supports them. Boudica first so it is the gauntlet seed.
 # State is saved after every game so the PGN never holds games a resume would replay.
+# restart=on: without it fastchess keeps every engine it has started alive, one per
+# worker per opponent (31 x 11 processes at 256 MB+ hash each), and a 64 GB box
+# runs out of memory within half an hour.
 if [[ -f "$OUT/config.json" ]]; then
     echo "Resuming from $OUT/config.json"
     "$CHESS_DIR/bin/fastchess" -config file="$OUT/config.json" | tee -a "$OUT/fastchess.log"
@@ -62,7 +65,7 @@ else
     -tournament gauntlet -seeds 1 \
     -engine cmd="$BOUDICA" name=boudica option.OwnBook=false \
     "${engines[@]}" \
-    -each tc="$TC" option.Hash=256 \
+    -each tc="$TC" option.Hash=256 restart=on \
     -openings file="$CHESS_DIR/books/8moves_v3.pgn" format=pgn order=random \
     -repeat -rounds $(( PER_ANCHOR / 2 )) -concurrency "$CONCURRENCY" -use-affinity \
     -tb "$CHESS_DIR/syzygy" -tbpieces 5 \
